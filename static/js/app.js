@@ -1,91 +1,116 @@
-/* =============================================================================
-   CCTP Analyzer - JavaScript Frontend
-   Chardonnet Conseil - Janvier 2026
-   ============================================================================= */
+/**
+ * CCTP Analyzer - Frontend JavaScript
+ * Chardonnet Conseil - 2026
+ * Design moderne avec animations fluides
+ */
 
-// État de l'application
-const state = {
-    sessionId: null,
-    ccagFile: null,
-    cctpFile: null,
-    jobId: null,
-    isAnalyzing: false
-};
+// =============================================================================
+// STATE
+// =============================================================================
 
-// Éléments DOM
+let sessionId = null;
+let ccagFile = null;
+let cctpFile = null;
+let jobId = null;
+let isAnalyzing = false;
+let pollInterval = null;
+
+// =============================================================================
+// DOM ELEMENTS
+// =============================================================================
+
 const elements = {
     // Dropzones
-    dropzoneCcag: document.getElementById('dropzone-ccag'),
-    dropzoneCctp: document.getElementById('dropzone-cctp'),
-    fileCcag: document.getElementById('file-ccag'),
-    fileCctp: document.getElementById('file-cctp'),
+    ccagDropzone: document.getElementById('ccag-dropzone'),
+    cctpDropzone: document.getElementById('cctp-dropzone'),
+    ccagInput: document.getElementById('ccag-input'),
+    cctpInput: document.getElementById('cctp-input'),
     
-    // File info
-    fileInfoCcag: document.getElementById('file-info-ccag'),
-    fileInfoCctp: document.getElementById('file-info-cctp'),
-    filenameCcag: document.getElementById('filename-ccag'),
-    filenameCctp: document.getElementById('filename-cctp'),
+    // Success states
+    ccagSuccess: document.getElementById('ccag-success'),
+    cctpSuccess: document.getElementById('cctp-success'),
+    ccagFilename: document.getElementById('ccag-filename'),
+    cctpFilename: document.getElementById('cctp-filename'),
     
-    // Domaine
-    domaine: document.getElementById('domaine'),
+    // Domain select
+    domaineSelect: document.getElementById('domaine-select'),
     
-    // Buttons
+    // Analyze button
     btnAnalyze: document.getElementById('btn-analyze'),
-    btnDownload: document.getElementById('btn-download'),
+    
+    // Sections
+    uploadSection: document.getElementById('upload-section'),
+    resultsSection: document.getElementById('results-section'),
+    
+    // Progress
+    progressContainer: document.getElementById('progress-container'),
+    progressFill: document.getElementById('progress-fill'),
+    progressPercentage: document.getElementById('progress-percentage'),
+    progressStep: document.getElementById('progress-step'),
     
     // Results
-    resultsSection: document.getElementById('results-section'),
-    progressContainer: document.getElementById('progress-container'),
-    progressStep: document.getElementById('progress-step'),
-    progressFill: document.getElementById('progress-fill'),
-    progressPercent: document.getElementById('progress-percent'),
-    
-    // Stats
-    statsContainer: document.getElementById('stats-container'),
+    resultsContainer: document.getElementById('results-container'),
+    riskBadge: document.getElementById('risk-badge'),
+    riskValue: document.getElementById('risk-value'),
+    statTotal: document.getElementById('stat-total'),
     statHaute: document.getElementById('stat-haute'),
     statMoyenne: document.getElementById('stat-moyenne'),
     statBasse: document.getElementById('stat-basse'),
+    synthesisBox: document.getElementById('synthesis-box'),
+    synthesisText: document.getElementById('synthesis-text'),
+    btnDownload: document.getElementById('btn-download'),
     
-    // Download & Error
-    downloadSection: document.getElementById('download-section'),
-    errorMessage: document.getElementById('error-message'),
-    errorText: document.getElementById('error-text')
+    // Error
+    errorContainer: document.getElementById('error-container'),
+    errorMessage: document.getElementById('error-message')
 };
 
 // =============================================================================
-// Initialisation
+// INITIALIZATION
 // =============================================================================
 
 document.addEventListener('DOMContentLoaded', () => {
     initDropzones();
-    initButtons();
-    console.log('CCTP Analyzer initialisé');
+    initAnalyzeButton();
+    initDomainSelect();
 });
 
 // =============================================================================
-// Dropzones
+// DROPZONES
 // =============================================================================
 
 function initDropzones() {
     // CCAG Dropzone
-    setupDropzone(elements.dropzoneCcag, elements.fileCcag, 'ccag');
+    setupDropzone(
+        elements.ccagDropzone,
+        elements.ccagInput,
+        'ccag'
+    );
     
     // CCTP Dropzone
-    setupDropzone(elements.dropzoneCctp, elements.fileCctp, 'cctp');
+    setupDropzone(
+        elements.cctpDropzone,
+        elements.cctpInput,
+        'cctp'
+    );
 }
 
-function setupDropzone(dropzone, fileInput, type) {
+function setupDropzone(dropzone, input, type) {
     // Click to select file
-    dropzone.addEventListener('click', () => fileInput.click());
-    
-    // File selected via input
-    fileInput.addEventListener('change', (e) => {
-        if (e.target.files.length > 0) {
-            handleFileSelect(e.target.files[0], type);
+    dropzone.addEventListener('click', (e) => {
+        if (!e.target.classList.contains('btn-change')) {
+            input.click();
         }
     });
     
-    // Drag & Drop events
+    // File selected
+    input.addEventListener('change', (e) => {
+        if (e.target.files.length > 0) {
+            handleFile(e.target.files[0], type);
+        }
+    });
+    
+    // Drag events
     dropzone.addEventListener('dragover', (e) => {
         e.preventDefault();
         dropzone.classList.add('drag-over');
@@ -101,251 +126,446 @@ function setupDropzone(dropzone, fileInput, type) {
         dropzone.classList.remove('drag-over');
         
         if (e.dataTransfer.files.length > 0) {
-            handleFileSelect(e.dataTransfer.files[0], type);
+            handleFile(e.dataTransfer.files[0], type);
         }
     });
 }
 
-function handleFileSelect(file, type) {
-    // Vérifier l'extension
+function handleFile(file, type) {
+    // Validate extension
     if (!file.name.toLowerCase().endsWith('.docx')) {
-        showError('Format non supporté. Veuillez sélectionner un fichier .docx');
+        showNotification('Format invalide. Utilisez un fichier .docx', 'error');
         return;
     }
     
-    // Vérifier la taille (20 MB max)
+    // Validate size (20 MB max)
     if (file.size > 20 * 1024 * 1024) {
-        showError('Fichier trop volumineux. Maximum: 20 MB');
+        showNotification('Fichier trop volumineux (max 20 MB)', 'error');
         return;
     }
     
-    // Stocker le fichier
+    // Store file
     if (type === 'ccag') {
-        state.ccagFile = file;
-        elements.dropzoneCcag.classList.add('has-file');
-        elements.filenameCcag.textContent = file.name;
-        elements.fileInfoCcag.classList.add('visible');
+        ccagFile = file;
+        elements.ccagDropzone.classList.add('has-file');
+        elements.ccagFilename.textContent = file.name;
     } else {
-        state.cctpFile = file;
-        elements.dropzoneCctp.classList.add('has-file');
-        elements.filenameCctp.textContent = file.name;
-        elements.fileInfoCctp.classList.add('visible');
+        cctpFile = file;
+        elements.cctpDropzone.classList.add('has-file');
+        elements.cctpFilename.textContent = file.name;
     }
     
-    // Uploader le fichier
+    // Upload file
     uploadFile(file, type);
     
-    // Mettre à jour le bouton
+    // Update button state
     updateAnalyzeButton();
 }
-
-// =============================================================================
-// Upload
-// =============================================================================
 
 async function uploadFile(file, type) {
     const formData = new FormData();
     formData.append('file', file);
     
     if (type === 'ccag') {
-        formData.append('domaine', elements.domaine.value);
-    }
-    
-    // Ajouter session ID si existant
-    const headers = {};
-    if (state.sessionId) {
-        headers['X-Session-ID'] = state.sessionId;
+        formData.append('domaine', elements.domaineSelect.value);
     }
     
     try {
         const response = await fetch(`/upload/${type}`, {
             method: 'POST',
-            headers: headers,
+            headers: sessionId ? { 'X-Session-ID': sessionId } : {},
             body: formData
         });
         
         const data = await response.json();
         
         if (data.success) {
-            // Sauvegarder le session ID
-            if (data.session_id) {
-                state.sessionId = data.session_id;
-            }
-            console.log(`${type.toUpperCase()} uploadé:`, data.filename);
+            sessionId = data.session_id;
+            showNotification(`${type.toUpperCase()} uploadé avec succès`, 'success');
         } else {
-            showError(data.error || 'Erreur lors de l\'upload');
-            
-            // Reset le fichier
-            if (type === 'ccag') {
-                state.ccagFile = null;
-                elements.dropzoneCcag.classList.remove('has-file');
-                elements.fileInfoCcag.classList.remove('visible');
-            } else {
-                state.cctpFile = null;
-                elements.dropzoneCctp.classList.remove('has-file');
-                elements.fileInfoCctp.classList.remove('visible');
-            }
-            updateAnalyzeButton();
+            throw new Error(data.error || 'Erreur upload');
         }
     } catch (error) {
-        console.error('Erreur upload:', error);
-        showError('Erreur de connexion au serveur');
+        console.error('Upload error:', error);
+        showNotification(`Erreur upload ${type.toUpperCase()}: ${error.message}`, 'error');
+        resetFile(type);
     }
 }
 
+function resetFile(type) {
+    if (type === 'ccag') {
+        ccagFile = null;
+        elements.ccagDropzone.classList.remove('has-file');
+        elements.ccagInput.value = '';
+    } else {
+        cctpFile = null;
+        elements.cctpDropzone.classList.remove('has-file');
+        elements.cctpInput.value = '';
+    }
+    
+    updateAnalyzeButton();
+}
+
 // =============================================================================
-// Analyse
+// DOMAIN SELECT
 // =============================================================================
 
-function initButtons() {
+function initDomainSelect() {
+    elements.domaineSelect.addEventListener('change', () => {
+        // Re-upload CCAG if file exists
+        if (ccagFile) {
+            uploadFile(ccagFile, 'ccag');
+        }
+    });
+}
+
+// =============================================================================
+// ANALYZE BUTTON
+// =============================================================================
+
+function initAnalyzeButton() {
     elements.btnAnalyze.addEventListener('click', startAnalysis);
-    elements.btnDownload.addEventListener('click', downloadResult);
 }
 
 function updateAnalyzeButton() {
-    const canAnalyze = state.ccagFile && state.cctpFile && !state.isAnalyzing;
+    const canAnalyze = ccagFile && cctpFile && !isAnalyzing;
     elements.btnAnalyze.disabled = !canAnalyze;
 }
 
 async function startAnalysis() {
-    if (state.isAnalyzing) return;
+    if (isAnalyzing) return;
     
-    state.isAnalyzing = true;
+    isAnalyzing = true;
+    elements.btnAnalyze.classList.add('loading');
     updateAnalyzeButton();
     
-    // Afficher la section résultats
-    elements.resultsSection.classList.add('visible');
-    elements.progressContainer.style.display = 'block';
-    elements.statsContainer.classList.remove('visible');
-    elements.downloadSection.classList.remove('visible');
-    elements.errorMessage.classList.remove('visible');
-    
-    // Reset progress
-    updateProgress(0, 'Démarrage de l\'analyse...');
+    // Show results section with progress
+    showResultsSection('progress');
     
     try {
         const response = await fetch('/analyze', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-Session-ID': state.sessionId
+                'X-Session-ID': sessionId
             },
-            body: JSON.stringify({
-                session_id: state.sessionId
-            })
+            body: JSON.stringify({ session_id: sessionId })
         });
         
         const data = await response.json();
         
         if (data.success) {
-            state.jobId = data.job_id;
-            console.log('Analyse lancée, job_id:', state.jobId);
-            
-            // Commencer le polling du statut
-            pollStatus();
+            jobId = data.job_id;
+            startPolling();
         } else {
-            showError(data.error || 'Erreur lors du lancement de l\'analyse');
-            state.isAnalyzing = false;
-            updateAnalyzeButton();
+            throw new Error(data.error || 'Erreur lors du lancement');
         }
     } catch (error) {
-        console.error('Erreur analyse:', error);
-        showError('Erreur de connexion au serveur');
-        state.isAnalyzing = false;
-        updateAnalyzeButton();
+        console.error('Analysis error:', error);
+        showError(error.message);
+    }
+}
+
+// =============================================================================
+// POLLING
+// =============================================================================
+
+function startPolling() {
+    pollInterval = setInterval(pollStatus, 1000);
+}
+
+function stopPolling() {
+    if (pollInterval) {
+        clearInterval(pollInterval);
+        pollInterval = null;
     }
 }
 
 async function pollStatus() {
-    if (!state.jobId) return;
-    
     try {
-        const response = await fetch(`/status/${state.jobId}`);
+        const response = await fetch(`/status/${jobId}`, {
+            headers: sessionId ? { 'X-Session-ID': sessionId } : {}
+        });
+        
         const data = await response.json();
         
         if (data.success) {
-            updateProgress(data.progress, data.step);
+            updateProgress(data);
             
             if (data.status === 'completed') {
-                // Analyse terminée
-                onAnalysisComplete(data);
+                stopPolling();
+                showResults(data);
             } else if (data.status === 'error') {
-                // Erreur
-                showError(data.error || 'Une erreur est survenue');
-                state.isAnalyzing = false;
-                updateAnalyzeButton();
-            } else {
-                // Encore en cours, continuer le polling
-                setTimeout(pollStatus, 1000);
+                stopPolling();
+                showError(data.error);
             }
-        } else {
-            showError(data.error || 'Erreur lors de la récupération du statut');
-            state.isAnalyzing = false;
-            updateAnalyzeButton();
         }
     } catch (error) {
-        console.error('Erreur polling:', error);
-        // Réessayer après un délai
-        setTimeout(pollStatus, 2000);
+        console.error('Poll error:', error);
     }
 }
 
-function updateProgress(percent, step) {
-    elements.progressFill.style.width = `${percent}%`;
-    elements.progressPercent.textContent = `${percent}%`;
+// =============================================================================
+// PROGRESS
+// =============================================================================
+
+function updateProgress(data) {
+    const progress = data.progress || 0;
+    const step = data.step || 'En cours...';
+    
+    // Update progress bar with animation
+    elements.progressFill.style.width = `${progress}%`;
+    elements.progressPercentage.textContent = `${progress}%`;
     elements.progressStep.textContent = step;
+    
+    // Update phases
+    updatePhases(progress);
 }
 
-function onAnalysisComplete(data) {
-    console.log('Analyse terminée:', data);
+function updatePhases(progress) {
+    const phases = document.querySelectorAll('.phase');
     
-    // Mettre à jour les stats
-    if (data.stats) {
-        elements.statHaute.textContent = data.stats.haute || 0;
-        elements.statMoyenne.textContent = data.stats.moyenne || 0;
-        elements.statBasse.textContent = data.stats.basse || 0;
-        elements.statsContainer.classList.add('visible');
+    phases.forEach((phase, index) => {
+        const phaseNum = index + 1;
+        
+        if (progress >= phaseNum * 33) {
+            phase.classList.add('completed');
+            phase.classList.remove('active');
+        } else if (progress >= (phaseNum - 1) * 33) {
+            phase.classList.add('active');
+            phase.classList.remove('completed');
+        } else {
+            phase.classList.remove('active', 'completed');
+        }
+    });
+}
+
+// =============================================================================
+// RESULTS
+// =============================================================================
+
+function showResultsSection(mode) {
+    elements.resultsSection.classList.add('active');
+    
+    // Hide all containers
+    elements.progressContainer.classList.remove('active');
+    elements.resultsContainer.classList.remove('active');
+    elements.errorContainer.classList.remove('active');
+    
+    // Show requested container
+    if (mode === 'progress') {
+        elements.progressContainer.classList.add('active');
+    } else if (mode === 'results') {
+        elements.resultsContainer.classList.add('active');
+    } else if (mode === 'error') {
+        elements.errorContainer.classList.add('active');
     }
     
-    // Afficher le bouton de téléchargement
-    elements.downloadSection.classList.add('visible');
-    
-    state.isAnalyzing = false;
-    updateAnalyzeButton();
+    // Scroll to results
+    elements.resultsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
-// =============================================================================
-// Téléchargement
-// =============================================================================
+function showResults(data) {
+    isAnalyzing = false;
+    elements.btnAnalyze.classList.remove('loading');
+    
+    const stats = data.stats || {};
+    const niveauRisque = data.niveau_risque || 'modéré';
+    const synthese = data.synthese || '';
+    
+    // Animate stats with counter effect
+    animateCounter(elements.statTotal, stats.total || 0);
+    animateCounter(elements.statHaute, stats.haute || 0);
+    animateCounter(elements.statMoyenne, stats.moyenne || 0);
+    animateCounter(elements.statBasse, stats.basse || 0);
+    
+    // Update risk badge
+    elements.riskValue.textContent = niveauRisque.charAt(0).toUpperCase() + niveauRisque.slice(1);
+    elements.riskValue.className = 'risk-value';
+    if (niveauRisque === 'faible') {
+        elements.riskValue.classList.add('risk-low');
+    } else if (niveauRisque === 'élevé') {
+        elements.riskValue.classList.add('risk-high');
+    }
+    
+    // Show synthesis if available
+    if (synthese) {
+        elements.synthesisBox.classList.add('active');
+        elements.synthesisText.textContent = synthese;
+    } else {
+        elements.synthesisBox.classList.remove('active');
+    }
+    
+    // Setup download button
+    elements.btnDownload.onclick = () => downloadResult();
+    
+    // Show results container
+    showResultsSection('results');
+}
+
+function animateCounter(element, target) {
+    const duration = 1000;
+    const start = 0;
+    const startTime = performance.now();
+    
+    function update(currentTime) {
+        const elapsed = currentTime - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        const easeProgress = 1 - Math.pow(1 - progress, 3); // Ease out cubic
+        
+        const current = Math.round(start + (target - start) * easeProgress);
+        element.textContent = current;
+        
+        if (progress < 1) {
+            requestAnimationFrame(update);
+        }
+    }
+    
+    requestAnimationFrame(update);
+}
 
 function downloadResult() {
-    if (!state.jobId) return;
-    
-    // Ouvrir le lien de téléchargement
-    window.location.href = `/download/${state.jobId}`;
+    if (jobId) {
+        window.location.href = `/download/${jobId}`;
+    }
 }
 
 // =============================================================================
-// Utilitaires
+// ERROR
 // =============================================================================
 
 function showError(message) {
-    elements.errorText.textContent = message;
-    elements.errorMessage.classList.add('visible');
+    isAnalyzing = false;
+    elements.btnAnalyze.classList.remove('loading');
+    updateAnalyzeButton();
     
-    // Masquer après 5 secondes
-    setTimeout(() => {
-        elements.errorMessage.classList.remove('visible');
-    }, 5000);
+    elements.errorMessage.textContent = message || 'Une erreur inattendue est survenue';
+    showResultsSection('error');
 }
 
 // =============================================================================
-// Gestion du changement de domaine
+// RESET
 // =============================================================================
 
-elements.domaine.addEventListener('change', () => {
-    // Si un CCAG est déjà uploadé, le ré-uploader avec le nouveau domaine
-    if (state.ccagFile) {
-        uploadFile(state.ccagFile, 'ccag');
+function resetAnalysis() {
+    // Stop polling
+    stopPolling();
+    
+    // Reset state
+    isAnalyzing = false;
+    jobId = null;
+    ccagFile = null;
+    cctpFile = null;
+    
+    // Reset UI
+    elements.btnAnalyze.classList.remove('loading');
+    elements.ccagDropzone.classList.remove('has-file');
+    elements.cctpDropzone.classList.remove('has-file');
+    elements.ccagInput.value = '';
+    elements.cctpInput.value = '';
+    
+    // Hide results section
+    elements.resultsSection.classList.remove('active');
+    
+    // Reset progress
+    elements.progressFill.style.width = '0%';
+    elements.progressPercentage.textContent = '0%';
+    elements.progressStep.textContent = 'Initialisation...';
+    
+    // Reset phases
+    document.querySelectorAll('.phase').forEach(phase => {
+        phase.classList.remove('active', 'completed');
+    });
+    
+    updateAnalyzeButton();
+    
+    // Scroll to top
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// =============================================================================
+// NOTIFICATIONS
+// =============================================================================
+
+function showNotification(message, type = 'info') {
+    // Create notification element
+    const notification = document.createElement('div');
+    notification.className = `notification notification-${type}`;
+    notification.innerHTML = `
+        <span>${message}</span>
+        <button onclick="this.parentElement.remove()">×</button>
+    `;
+    
+    // Add styles if not present
+    if (!document.getElementById('notification-styles')) {
+        const styles = document.createElement('style');
+        styles.id = 'notification-styles';
+        styles.textContent = `
+            .notification {
+                position: fixed;
+                bottom: 24px;
+                right: 24px;
+                padding: 16px 20px;
+                background: rgba(15, 15, 26, 0.95);
+                border: 1px solid var(--border);
+                border-radius: 12px;
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                font-size: 0.95rem;
+                z-index: 1000;
+                animation: slideIn 0.3s ease;
+                backdrop-filter: blur(10px);
+            }
+            
+            .notification-success {
+                border-color: var(--success);
+                color: var(--success);
+            }
+            
+            .notification-error {
+                border-color: var(--danger);
+                color: var(--danger);
+            }
+            
+            .notification button {
+                background: none;
+                border: none;
+                color: inherit;
+                font-size: 1.2rem;
+                cursor: pointer;
+                opacity: 0.7;
+                transition: opacity 0.2s;
+            }
+            
+            .notification button:hover {
+                opacity: 1;
+            }
+            
+            @keyframes slideIn {
+                from {
+                    opacity: 0;
+                    transform: translateX(20px);
+                }
+                to {
+                    opacity: 1;
+                    transform: translateX(0);
+                }
+            }
+        `;
+        document.head.appendChild(styles);
     }
-});
+    
+    // Add to DOM
+    document.body.appendChild(notification);
+    
+    // Auto remove after 4 seconds
+    setTimeout(() => {
+        notification.style.animation = 'slideIn 0.3s ease reverse';
+        setTimeout(() => notification.remove(), 300);
+    }, 4000);
+}
+
+// Make resetFile and resetAnalysis globally available
+window.resetFile = resetFile;
+window.resetAnalysis = resetAnalysis;

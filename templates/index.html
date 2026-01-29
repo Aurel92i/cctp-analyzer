@@ -3,176 +3,336 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CCTP Analyzer - Chardonnet Conseil</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <title>CCTP Analyzer | Chardonnet Conseil</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body>
+    <!-- Animated Background -->
+    <div class="bg-animation">
+        <div class="bg-gradient"></div>
+        <div class="bg-grid"></div>
+        <div class="floating-shapes">
+            <div class="shape shape-1"></div>
+            <div class="shape shape-2"></div>
+            <div class="shape shape-3"></div>
+            <div class="shape shape-4"></div>
+        </div>
+    </div>
+
     <!-- Header -->
     <header class="header">
         <div class="header-content">
             <div class="logo">
-                <span class="logo-icon">🏛️</span>
-                <span class="logo-text">CHARDONNET CONSEIL</span>
+                <div class="logo-icon">
+                    <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <rect width="40" height="40" rx="10" fill="url(#logo-gradient)"/>
+                        <path d="M12 28V12H20C22.1217 12 24.1566 12.8429 25.6569 14.3431C27.1571 15.8434 28 17.8783 28 20C28 22.1217 27.1571 24.1566 25.6569 25.6569C24.1566 27.1571 22.1217 28 20 28H12Z" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M12 20H20" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                        <defs>
+                            <linearGradient id="logo-gradient" x1="0" y1="0" x2="40" y2="40">
+                                <stop stop-color="#667eea"/>
+                                <stop offset="1" stop-color="#764ba2"/>
+                            </linearGradient>
+                        </defs>
+                    </svg>
+                </div>
+                <div class="logo-text">
+                    <span class="logo-name">CHARDONNET</span>
+                    <span class="logo-subtitle">CONSEIL</span>
+                </div>
             </div>
             <nav class="nav">
-                <a href="#" class="nav-link">À propos</a>
+                <a href="#" class="nav-link active">Analyseur</a>
+                <a href="#" class="nav-link">Documentation</a>
+                <a href="#" class="nav-link">Contact</a>
             </nav>
         </div>
     </header>
 
     <!-- Main Content -->
     <main class="main">
-        <div class="container">
-            <!-- Hero Section -->
-            <section class="hero">
-                <h1 class="hero-title">Analyseur de CCTP</h1>
-                <p class="hero-subtitle">Expert en Marchés Publics depuis 1995</p>
-            </section>
+        <!-- Hero Section -->
+        <section class="hero">
+            <div class="hero-badge">
+                <span class="badge-dot"></span>
+                <span>Analyse juridique automatisée</span>
+            </div>
+            <h1 class="hero-title">
+                <span class="title-line">Analysez vos</span>
+                <span class="title-gradient">CCTP</span>
+                <span class="title-line">en quelques clics</span>
+            </h1>
+            <p class="hero-description">
+                Expert en marchés publics depuis 1998.<br>
+                Analyse juridique automatisée, commentaires professionnels, conformité garantie.
+            </p>
+        </section>
 
-            <!-- Upload Section -->
-            <section class="upload-section">
-                <div class="upload-grid">
-                    <!-- CCAG Upload -->
-                    <div class="upload-card ccag-card">
-                        <div class="card-header">
-                            <span class="card-icon">📘</span>
-                            <h2 class="card-title">CCAG - Référentiel</h2>
+        <!-- Upload Section -->
+        <section class="upload-section" id="upload-section">
+            <div class="upload-container">
+                <!-- CCAG Card -->
+                <div class="upload-card ccag-card" id="ccag-card">
+                    <div class="card-header">
+                        <div class="card-icon ccag-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                <polyline points="14 2 14 8 20 8"/>
+                                <line x1="16" y1="13" x2="8" y2="13"/>
+                                <line x1="16" y1="17" x2="8" y2="17"/>
+                                <polyline points="10 9 9 9 8 9"/>
+                            </svg>
                         </div>
-                        
-                        <div class="domaine-select">
-                            <label for="domaine">Domaine :</label>
-                            <select id="domaine" name="domaine">
+                        <div class="card-title-group">
+                            <h3 class="card-title">CCAG</h3>
+                            <p class="card-subtitle">Clauses Administratives</p>
+                        </div>
+                    </div>
+                    
+                    <div class="domain-selector">
+                        <label class="selector-label">Domaine du marché</label>
+                        <div class="select-wrapper">
+                            <select id="domaine-select" class="domain-select">
                                 {% for key, value in domaines.items() %}
                                 <option value="{{ key }}">{{ value }}</option>
                                 {% endfor %}
                             </select>
-                        </div>
-                        
-                        <div class="dropzone" id="dropzone-ccag" data-type="ccag">
-                            <div class="dropzone-content">
-                                <span class="dropzone-icon">📄</span>
-                                <p class="dropzone-text">Glissez votre CCAG ici</p>
-                                <p class="dropzone-subtext">ou cliquez pour sélectionner</p>
-                                <p class="dropzone-format">.docx uniquement</p>
+                            <div class="select-arrow">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="6 9 12 15 18 9"/>
+                                </svg>
                             </div>
-                            <input type="file" id="file-ccag" accept=".docx" hidden>
-                        </div>
-                        
-                        <div class="file-info" id="file-info-ccag">
-                            <span class="file-status">✅</span>
-                            <span class="file-name" id="filename-ccag">-</span>
                         </div>
                     </div>
 
-                    <!-- CCTP Upload -->
-                    <div class="upload-card cctp-card">
-                        <div class="card-header">
-                            <span class="card-icon">📄</span>
-                            <h2 class="card-title">CCTP - À analyser</h2>
-                        </div>
-                        
-                        <div class="dropzone" id="dropzone-cctp" data-type="cctp">
-                            <div class="dropzone-content">
-                                <span class="dropzone-icon">📋</span>
-                                <p class="dropzone-text">Glissez votre CCTP ici</p>
-                                <p class="dropzone-subtext">ou cliquez pour sélectionner</p>
-                                <p class="dropzone-format">.docx uniquement</p>
+                    <div class="dropzone" id="ccag-dropzone">
+                        <input type="file" id="ccag-input" accept=".docx" hidden>
+                        <div class="dropzone-content">
+                            <div class="dropzone-icon">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                    <polyline points="17 8 12 3 7 8"/>
+                                    <line x1="12" y1="3" x2="12" y2="15"/>
+                                </svg>
                             </div>
-                            <input type="file" id="file-cctp" accept=".docx" hidden>
+                            <p class="dropzone-text">Glissez votre fichier CCAG</p>
+                            <p class="dropzone-hint">ou cliquez pour sélectionner</p>
+                            <span class="dropzone-format">.docx uniquement</span>
                         </div>
-                        
-                        <div class="file-info" id="file-info-cctp">
-                            <span class="file-status">✅</span>
-                            <span class="file-name" id="filename-cctp">-</span>
+                        <div class="dropzone-success" id="ccag-success">
+                            <div class="success-icon">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="20 6 9 17 4 12"/>
+                                </svg>
+                            </div>
+                            <p class="success-filename" id="ccag-filename"></p>
+                            <button class="btn-change" onclick="resetFile('ccag')">Changer</button>
                         </div>
                     </div>
                 </div>
 
-                <!-- Analyze Button -->
-                <div class="analyze-section">
-                    <button class="btn-analyze" id="btn-analyze" disabled>
-                        <span class="btn-icon">🔍</span>
-                        <span class="btn-text">Lancer l'analyse</span>
-                    </button>
-                </div>
-            </section>
-
-            <!-- Results Section -->
-            <section class="results-section" id="results-section">
-                <div class="results-card">
-                    <div class="results-header">
-                        <span class="results-icon">📊</span>
-                        <h2 class="results-title">Résultats de l'analyse</h2>
-                    </div>
-
-                    <!-- Progress -->
-                    <div class="progress-container" id="progress-container">
-                        <div class="progress-step" id="progress-step">Initialisation...</div>
-                        <div class="progress-bar">
-                            <div class="progress-fill" id="progress-fill"></div>
+                <!-- CCTP Card -->
+                <div class="upload-card cctp-card" id="cctp-card">
+                    <div class="card-header">
+                        <div class="card-icon cctp-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                <polyline points="14 2 14 8 20 8"/>
+                                <path d="M12 18v-6"/>
+                                <path d="M9 15l3 3 3-3"/>
+                            </svg>
                         </div>
-                        <div class="progress-percent" id="progress-percent">0%</div>
-                    </div>
-
-                    <!-- Stats -->
-                    <div class="stats-container" id="stats-container">
-                        <div class="stat-item stat-haute">
-                            <span class="stat-icon">🔴</span>
-                            <span class="stat-label">Haute gravité</span>
-                            <span class="stat-value" id="stat-haute">0</span>
-                        </div>
-                        <div class="stat-item stat-moyenne">
-                            <span class="stat-icon">🟠</span>
-                            <span class="stat-label">Moyenne gravité</span>
-                            <span class="stat-value" id="stat-moyenne">0</span>
-                        </div>
-                        <div class="stat-item stat-basse">
-                            <span class="stat-icon">🟢</span>
-                            <span class="stat-label">Basse gravité</span>
-                            <span class="stat-value" id="stat-basse">0</span>
+                        <div class="card-title-group">
+                            <h3 class="card-title">CCTP</h3>
+                            <p class="card-subtitle">Document à analyser</p>
                         </div>
                     </div>
 
-                    <!-- Download Button -->
-                    <div class="download-section" id="download-section">
-                        <button class="btn-download" id="btn-download">
-                            <span class="btn-icon">📥</span>
-                            <span class="btn-text">Télécharger le CCTP annoté</span>
-                        </button>
+                    <div class="info-box">
+                        <div class="info-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="10"/>
+                                <line x1="12" y1="16" x2="12" y2="12"/>
+                                <line x1="12" y1="8" x2="12.01" y2="8"/>
+                            </svg>
+                        </div>
+                        <p>Le Code de la Commande Publique est automatiquement inclus dans l'analyse.</p>
                     </div>
 
-                    <!-- Error Message -->
-                    <div class="error-message" id="error-message">
-                        <span class="error-icon">⚠️</span>
-                        <span class="error-text" id="error-text"></span>
+                    <div class="dropzone" id="cctp-dropzone">
+                        <input type="file" id="cctp-input" accept=".docx" hidden>
+                        <div class="dropzone-content">
+                            <div class="dropzone-icon">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                    <polyline points="17 8 12 3 7 8"/>
+                                    <line x1="12" y1="3" x2="12" y2="15"/>
+                                </svg>
+                            </div>
+                            <p class="dropzone-text">Glissez votre fichier CCTP</p>
+                            <p class="dropzone-hint">ou cliquez pour sélectionner</p>
+                            <span class="dropzone-format">.docx uniquement</span>
+                        </div>
+                        <div class="dropzone-success" id="cctp-success">
+                            <div class="success-icon">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="20 6 9 17 4 12"/>
+                                </svg>
+                            </div>
+                            <p class="success-filename" id="cctp-filename"></p>
+                            <button class="btn-change" onclick="resetFile('cctp')">Changer</button>
+                        </div>
                     </div>
                 </div>
-            </section>
+            </div>
 
-            <!-- Info Section -->
-            <section class="info-section">
-                <div class="info-box">
-                    <span class="info-icon">💡</span>
-                    <p class="info-text">
-                        Le <strong>Code de la Commande Publique</strong> est automatiquement inclus dans l'analyse.
-                    </p>
+            <!-- Analyze Button -->
+            <div class="analyze-wrapper">
+                <button class="btn-analyze" id="btn-analyze" disabled>
+                    <span class="btn-text">Lancer l'analyse</span>
+                    <span class="btn-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="5" y1="12" x2="19" y2="12"/>
+                            <polyline points="12 5 19 12 12 19"/>
+                        </svg>
+                    </span>
+                    <span class="btn-loader">
+                        <svg class="spinner" viewBox="0 0 24 24">
+                            <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" fill="none" stroke-dasharray="60" stroke-linecap="round"/>
+                        </svg>
+                    </span>
+                </button>
+            </div>
+        </section>
+
+        <!-- Results Section -->
+        <section class="results-section" id="results-section">
+            <!-- Progress -->
+            <div class="progress-container" id="progress-container">
+                <div class="progress-header">
+                    <h3 class="progress-title">Analyse en cours</h3>
+                    <span class="progress-percentage" id="progress-percentage">0%</span>
                 </div>
-            </section>
-        </div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progress-fill"></div>
+                    <div class="progress-glow"></div>
+                </div>
+                <p class="progress-step" id="progress-step">Initialisation...</p>
+                <div class="progress-phases">
+                    <div class="phase" data-phase="1">
+                        <div class="phase-dot"></div>
+                        <span>Extraction</span>
+                    </div>
+                    <div class="phase" data-phase="2">
+                        <div class="phase-dot"></div>
+                        <span>Analyse</span>
+                    </div>
+                    <div class="phase" data-phase="3">
+                        <div class="phase-dot"></div>
+                        <span>Annotation</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Results -->
+            <div class="results-container" id="results-container">
+                <div class="results-header">
+                    <div class="results-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                            <polyline points="22 4 12 14.01 9 11.01"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <h3 class="results-title">Analyse terminée</h3>
+                        <p class="results-subtitle" id="results-subtitle">Votre document est prêt</p>
+                    </div>
+                </div>
+
+                <!-- Risk Level Badge -->
+                <div class="risk-badge" id="risk-badge">
+                    <span class="risk-label">Niveau de risque</span>
+                    <span class="risk-value" id="risk-value">Modéré</span>
+                </div>
+
+                <!-- Stats Grid -->
+                <div class="stats-grid">
+                    <div class="stat-card stat-total">
+                        <div class="stat-value" id="stat-total">0</div>
+                        <div class="stat-label">Remarques</div>
+                    </div>
+                    <div class="stat-card stat-haute">
+                        <div class="stat-icon">🔴</div>
+                        <div class="stat-value" id="stat-haute">0</div>
+                        <div class="stat-label">Haute</div>
+                    </div>
+                    <div class="stat-card stat-moyenne">
+                        <div class="stat-icon">🟠</div>
+                        <div class="stat-value" id="stat-moyenne">0</div>
+                        <div class="stat-label">Moyenne</div>
+                    </div>
+                    <div class="stat-card stat-basse">
+                        <div class="stat-icon">🟢</div>
+                        <div class="stat-value" id="stat-basse">0</div>
+                        <div class="stat-label">Basse</div>
+                    </div>
+                </div>
+
+                <!-- Synthesis -->
+                <div class="synthesis-box" id="synthesis-box">
+                    <h4 class="synthesis-title">Synthèse de l'analyse</h4>
+                    <p class="synthesis-text" id="synthesis-text"></p>
+                </div>
+
+                <!-- Download Button -->
+                <button class="btn-download" id="btn-download">
+                    <span class="btn-download-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                            <polyline points="7 10 12 15 17 10"/>
+                            <line x1="12" y1="15" x2="12" y2="3"/>
+                        </svg>
+                    </span>
+                    <span>Télécharger le CCTP annoté</span>
+                </button>
+
+                <!-- New Analysis -->
+                <button class="btn-new" id="btn-new" onclick="resetAnalysis()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="1 4 1 10 7 10"/>
+                        <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/>
+                    </svg>
+                    <span>Nouvelle analyse</span>
+                </button>
+            </div>
+
+            <!-- Error -->
+            <div class="error-container" id="error-container">
+                <div class="error-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"/>
+                        <line x1="15" y1="9" x2="9" y2="15"/>
+                        <line x1="9" y1="9" x2="15" y2="15"/>
+                    </svg>
+                </div>
+                <h3 class="error-title">Une erreur est survenue</h3>
+                <p class="error-message" id="error-message"></p>
+                <button class="btn-retry" onclick="resetAnalysis()">Réessayer</button>
+            </div>
+        </section>
     </main>
 
     <!-- Footer -->
     <footer class="footer">
         <div class="footer-content">
-            <p>© 2026 Chardonnet Conseil - Tous droits réservés</p>
-            <p class="footer-subtitle">Expert en Marchés Publics</p>
+            <p>© 2026 Chardonnet Conseil — Expert en Marchés Publics</p>
+            <p class="footer-powered">Analyse automatisée de vos documents contractuels</p>
         </div>
     </footer>
 
-    <!-- JavaScript -->
     <script src="{{ url_for('static', filename='js/app.js') }}"></script>
 </body>
 </html>
