@@ -13,8 +13,8 @@ services:
     # Commande de build
     buildCommand: pip install -r requirements.txt
     
-    # Commande de démarrage
-    startCommand: gunicorn app:app --bind 0.0.0.0:$PORT --timeout 300
+    # Commande de démarrage (timeout augmenté pour analyses multi-passes)
+    startCommand: gunicorn app:app --bind 0.0.0.0:$PORT --timeout 600 --workers 2
     
     # Variables d'environnement (à configurer dans le dashboard Render)
     envVars:

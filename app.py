@@ -391,10 +391,10 @@ def run_analysis(job_id):
             "code_ccp": code_ccp_text
         }
         
-        # === ÉTAPE 6 : Analyse GPT-4 ===
-        job["progress"] = 40
-        job["step"] = "Analyse en cours avec GPT-4..."
-        logger.info(f"[{job_id}] Lancement analyse GPT-4")
+        # === ÉTAPE 6 : Analyse GPT-4 MULTI-PASSES ===
+        job["progress"] = 35
+        job["step"] = "Analyse multi-passes en cours (découpage en sections)..."
+        logger.info(f"[{job_id}] Lancement analyse GPT-4 MULTI-PASSES")
         
         from services.gpt_analyzer import analyze_cctp
         
@@ -411,8 +411,11 @@ def run_analysis(job_id):
         job["remarques"] = result.get("remarques", [])
         job["synthese"] = result.get("synthese", "")
         job["statistiques"] = result.get("statistiques", {})
+        job["niveau_risque"] = result.get("niveau_risque", "modéré")
+        job["points_critiques"] = result.get("points_critiques", [])
         
-        logger.info(f"[{job_id}] Analyse GPT-4 terminée: {len(job['remarques'])} remarques")
+        sections_analysees = result.get("statistiques", {}).get("sections_analysees", 0)
+        logger.info(f"[{job_id}] Analyse GPT-4 terminée: {len(job['remarques'])} remarques sur {sections_analysees} sections")
         
         job["progress"] = 70
         job["step"] = "Préparation de l'annotation Word..."
@@ -505,6 +508,10 @@ def get_status(job_id):
             "moyenne": len([r for r in remarques if r.get("gravite") == "moyenne"]),
             "basse": len([r for r in remarques if r.get("gravite") == "basse"])
         }
+        # Nouvelles infos multi-passes
+        response["niveau_risque"] = job.get("niveau_risque", "modéré")
+        response["synthese"] = job.get("synthese", "")
+        response["points_critiques"] = job.get("points_critiques", [])
     
     if job["status"] == "error":
         response["error"] = job["error"]

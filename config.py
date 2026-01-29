@@ -36,14 +36,17 @@ OPENROUTER_MODEL = os.getenv("OPENROUTER_MODEL", "openai/gpt-4-turbo")
 # =============================================================================
 GPT_MAX_TOKENS = 8000
 GPT_TEMPERATURE = 0.2  # Précision pour l'analyse juridique
-GPT_TIMEOUT = 180  # 3 minutes max (3 sources = plus long)
+GPT_TIMEOUT = 300  # 5 minutes max par appel (multi-passes = plusieurs appels)
 
 # =============================================================================
-# LIMITES DE CARACTÈRES (pour respecter les limites de tokens)
+# LIMITES DE CARACTÈRES (augmentées pour analyse complète)
 # =============================================================================
-MAX_CHARS_CCAG = 40000      # ~10k tokens pour le CCAG
-MAX_CHARS_CCTP = 80000      # ~20k tokens pour le CCTP
-MAX_CHARS_CODE_CCP = 30000  # ~7.5k tokens pour le Code CCP
+MAX_CHARS_CCAG = 400000      # ~100k tokens pour le CCAG complet
+MAX_CHARS_CCTP = 400000      # ~100k tokens pour le CCTP complet
+MAX_CHARS_CODE_CCP = 200000  # ~50k tokens pour le Code CCP
+
+# Limite par section pour l'analyse multi-passes
+MAX_CHARS_PER_SECTION = 30000  # ~7.5k tokens par section
 
 # =============================================================================
 # FICHIERS FIXES
