@@ -1,0 +1,31 @@
+# =============================================================================
+# CCTP Analyzer - Configuration Render
+# Chardonnet Conseil - Janvier 2026
+# =============================================================================
+
+services:
+  - type: web
+    name: cctp-analyzer
+    runtime: python
+    region: frankfurt  # Serveur en Europe (proche de la France)
+    plan: free         # Gratuit pour commencer (passer à "starter" si besoin)
+    
+    # Commande de build
+    buildCommand: pip install -r requirements.txt
+    
+    # Commande de démarrage
+    startCommand: gunicorn app:app --bind 0.0.0.0:$PORT --timeout 300
+    
+    # Variables d'environnement (à configurer dans le dashboard Render)
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.11.0"
+      - key: FLASK_ENV
+        value: production
+      - key: OPENROUTER_API_KEY
+        sync: false  # À définir manuellement dans Render (secret)
+      - key: SECRET_KEY
+        generateValue: true  # Généré automatiquement par Render
+    
+    # Health check
+    healthCheckPath: /health

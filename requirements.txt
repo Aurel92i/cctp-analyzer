@@ -1,0 +1,17 @@
+# CCTP Analyzer - Dépendances Python
+# Chardonnet Conseil - Janvier 2026
+# Compatible Windows + Python 3.11+
+
+# Framework Web
+flask>=3.0.0
+werkzeug>=3.0.0
+gunicorn>=21.0.0
+
+# Traitement Documents Word
+python-docx>=1.0.0
+
+# Requêtes HTTP (OpenRouter API)
+requests>=2.31.0
+
+# Configuration
+python-dotenv>=1.0.0

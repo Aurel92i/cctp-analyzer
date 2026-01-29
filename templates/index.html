@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CCTP Analyzer - Chardonnet Conseil</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="header-content">
+            <div class="logo">
+                <span class="logo-icon">🏛️</span>
+                <span class="logo-text">CHARDONNET CONSEIL</span>
+            </div>
+            <nav class="nav">
+                <a href="#" class="nav-link">À propos</a>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main">
+        <div class="container">
+            <!-- Hero Section -->
+            <section class="hero">
+                <h1 class="hero-title">Analyseur de CCTP</h1>
+                <p class="hero-subtitle">Expert en Marchés Publics depuis 1995</p>
+            </section>
+
+            <!-- Upload Section -->
+            <section class="upload-section">
+                <div class="upload-grid">
+                    <!-- CCAG Upload -->
+                    <div class="upload-card ccag-card">
+                        <div class="card-header">
+                            <span class="card-icon">📘</span>
+                            <h2 class="card-title">CCAG - Référentiel</h2>
+                        </div>
+                        
+                        <div class="domaine-select">
+                            <label for="domaine">Domaine :</label>
+                            <select id="domaine" name="domaine">
+                                {% for key, value in domaines.items() %}
+                                <option value="{{ key }}">{{ value }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <div class="dropzone" id="dropzone-ccag" data-type="ccag">
+                            <div class="dropzone-content">
+                                <span class="dropzone-icon">📄</span>
+                                <p class="dropzone-text">Glissez votre CCAG ici</p>
+                                <p class="dropzone-subtext">ou cliquez pour sélectionner</p>
+                                <p class="dropzone-format">.docx uniquement</p>
+                            </div>
+                            <input type="file" id="file-ccag" accept=".docx" hidden>
+                        </div>
+                        
+                        <div class="file-info" id="file-info-ccag">
+                            <span class="file-status">✅</span>
+                            <span class="file-name" id="filename-ccag">-</span>
+                        </div>
+                    </div>
+
+                    <!-- CCTP Upload -->
+                    <div class="upload-card cctp-card">
+                        <div class="card-header">
+                            <span class="card-icon">📄</span>
+                            <h2 class="card-title">CCTP - À analyser</h2>
+                        </div>
+                        
+                        <div class="dropzone" id="dropzone-cctp" data-type="cctp">
+                            <div class="dropzone-content">
+                                <span class="dropzone-icon">📋</span>
+                                <p class="dropzone-text">Glissez votre CCTP ici</p>
+                                <p class="dropzone-subtext">ou cliquez pour sélectionner</p>
+                                <p class="dropzone-format">.docx uniquement</p>
+                            </div>
+                            <input type="file" id="file-cctp" accept=".docx" hidden>
+                        </div>
+                        
+                        <div class="file-info" id="file-info-cctp">
+                            <span class="file-status">✅</span>
+                            <span class="file-name" id="filename-cctp">-</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Analyze Button -->
+                <div class="analyze-section">
+                    <button class="btn-analyze" id="btn-analyze" disabled>
+                        <span class="btn-icon">🔍</span>
+                        <span class="btn-text">Lancer l'analyse</span>
+                    </button>
+                </div>
+            </section>
+
+            <!-- Results Section -->
+            <section class="results-section" id="results-section">
+                <div class="results-card">
+                    <div class="results-header">
+                        <span class="results-icon">📊</span>
+                        <h2 class="results-title">Résultats de l'analyse</h2>
+                    </div>
+
+                    <!-- Progress -->
+                    <div class="progress-container" id="progress-container">
+                        <div class="progress-step" id="progress-step">Initialisation...</div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="progress-fill"></div>
+                        </div>
+                        <div class="progress-percent" id="progress-percent">0%</div>
+                    </div>
+
+                    <!-- Stats -->
+                    <div class="stats-container" id="stats-container">
+                        <div class="stat-item stat-haute">
+                            <span class="stat-icon">🔴</span>
+                            <span class="stat-label">Haute gravité</span>
+                            <span class="stat-value" id="stat-haute">0</span>
+                        </div>
+                        <div class="stat-item stat-moyenne">
+                            <span class="stat-icon">🟠</span>
+                            <span class="stat-label">Moyenne gravité</span>
+                            <span class="stat-value" id="stat-moyenne">0</span>
+                        </div>
+                        <div class="stat-item stat-basse">
+                            <span class="stat-icon">🟢</span>
+                            <span class="stat-label">Basse gravité</span>
+                            <span class="stat-value" id="stat-basse">0</span>
+                        </div>
+                    </div>
+
+                    <!-- Download Button -->
+                    <div class="download-section" id="download-section">
+                        <button class="btn-download" id="btn-download">
+                            <span class="btn-icon">📥</span>
+                            <span class="btn-text">Télécharger le CCTP annoté</span>
+                        </button>
+                    </div>
+
+                    <!-- Error Message -->
+                    <div class="error-message" id="error-message">
+                        <span class="error-icon">⚠️</span>
+                        <span class="error-text" id="error-text"></span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Info Section -->
+            <section class="info-section">
+                <div class="info-box">
+                    <span class="info-icon">💡</span>
+                    <p class="info-text">
+                        Le <strong>Code de la Commande Publique</strong> est automatiquement inclus dans l'analyse.
+                    </p>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-content">
+            <p>© 2026 Chardonnet Conseil - Tous droits réservés</p>
+            <p class="footer-subtitle">Expert en Marchés Publics</p>
+        </div>
+    </footer>
+
+    <!-- JavaScript -->
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>

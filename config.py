@@ -1,0 +1,96 @@
+"""
+CCTP Analyzer - Configuration
+Chardonnet Conseil - Janvier 2026
+"""
+
+import os
+from pathlib import Path
+from dotenv import load_dotenv
+
+# Charger les variables d'environnement
+load_dotenv()
+
+# =============================================================================
+# CHEMINS
+# =============================================================================
+BASE_DIR = Path(__file__).parent
+DATA_DIR = BASE_DIR / "data"
+UPLOADS_DIR = BASE_DIR / "uploads"
+UPLOADS_CCAG_DIR = UPLOADS_DIR / "ccag"
+UPLOADS_CCTP_DIR = UPLOADS_DIR / "cctp"
+OUTPUTS_DIR = BASE_DIR / "outputs"
+
+# Créer les dossiers s'ils n'existent pas
+for directory in [DATA_DIR, UPLOADS_CCAG_DIR, UPLOADS_CCTP_DIR, OUTPUTS_DIR]:
+    directory.mkdir(parents=True, exist_ok=True)
+
+# =============================================================================
+# API OPENROUTER
+# =============================================================================
+OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "")
+OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1/chat/completions"
+OPENROUTER_MODEL = os.getenv("OPENROUTER_MODEL", "openai/gpt-4-turbo")
+
+# =============================================================================
+# PARAMÈTRES GPT-4
+# =============================================================================
+GPT_MAX_TOKENS = 8000
+GPT_TEMPERATURE = 0.2  # Précision pour l'analyse juridique
+GPT_TIMEOUT = 180  # 3 minutes max (3 sources = plus long)
+
+# =============================================================================
+# LIMITES DE CARACTÈRES (pour respecter les limites de tokens)
+# =============================================================================
+MAX_CHARS_CCAG = 40000      # ~10k tokens pour le CCAG
+MAX_CHARS_CCTP = 80000      # ~20k tokens pour le CCTP
+MAX_CHARS_CODE_CCP = 30000  # ~7.5k tokens pour le Code CCP
+
+# =============================================================================
+# FICHIERS FIXES
+# =============================================================================
+CODE_COMMANDE_PUBLIQUE_FILE = DATA_DIR / "code_commande_publique.txt"
+
+# =============================================================================
+# UPLOAD
+# =============================================================================
+MAX_FILE_SIZE_MB = 20
+ALLOWED_EXTENSIONS = {"docx"}
+ALLOWED_MIMETYPES = {
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+}
+
+# =============================================================================
+# DOMAINES CCAG
+# =============================================================================
+DOMAINES_CCAG = {
+    "travaux": "Travaux",
+    "fournitures": "Fournitures courantes et services",
+    "pi": "Prestations intellectuelles",
+    "tic": "Techniques de l'information et de la communication",
+    "moe": "Maîtrise d'œuvre",
+    "industriel": "Marchés industriels"
+}
+
+# =============================================================================
+# APPLICATION FLASK
+# =============================================================================
+class Config:
+    SECRET_KEY = os.getenv("SECRET_KEY", "dev-secret-key-change-in-production")
+    MAX_CONTENT_LENGTH = MAX_FILE_SIZE_MB * 1024 * 1024  # En bytes
+    
+class DevelopmentConfig(Config):
+    DEBUG = True
+    
+class ProductionConfig(Config):
+    DEBUG = False
+
+# Sélection de la config selon l'environnement
+config = {
+    "development": DevelopmentConfig,
+    "production": ProductionConfig,
+    "default": DevelopmentConfig
+}
+
+def get_config():
+    env = os.getenv("FLASK_ENV", "development")
+    return config.get(env, config["default"])

@@ -1,0 +1,49 @@
+# =============================================================================
+# CCTP Analyzer - .gitignore
+# =============================================================================
+
+# Environnement Python
+venv/
+env/
+.env
+*.pyc
+__pycache__/
+*.pyo
+*.pyd
+.Python
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Fichiers uploadés et générés (ne pas commiter)
+uploads/ccag/*
+uploads/cctp/*
+outputs/*
+!uploads/ccag/.gitkeep
+!uploads/cctp/.gitkeep
+!outputs/.gitkeep
+
+# Logs
+*.log
+logs/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker
+.docker/
+
+# Tests
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Distribution
+dist/
+build/
+*.egg-info/
