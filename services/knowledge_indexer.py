@@ -8,11 +8,13 @@ Utilise ChromaDB (stockage local, sans serveur) pour indexer :
 - Le CCTP uploadé (collection "cctp_{session_id}")
 """
 
+import os
 import re
 import logging
 from pathlib import Path
 
 import chromadb
+import chromadb.utils.embedding_functions as embedding_functions
 
 logger = logging.getLogger(__name__)
 
@@ -24,6 +26,15 @@ VECTOR_STORE_DIR.mkdir(parents=True, exist_ok=True)
 client = chromadb.PersistentClient(path=str(VECTOR_STORE_DIR))
 
 
+def get_embedding_function():
+    """Retourne une embedding function API (OpenRouter/OpenAI) au lieu d'un modèle local."""
+    return embedding_functions.OpenAIEmbeddingFunction(
+        api_key=os.getenv("OPENROUTER_API_KEY"),
+        api_base="https://openrouter.ai/api/v1",
+        model_name="openai/text-embedding-3-small",
+    )
+
+
 def index_code_commande_publique(filepath: str, force_reindex: bool = False):
     """
     Indexe le Code de la Commande Publique en chunks structurés.
@@ -32,7 +43,9 @@ def index_code_commande_publique(filepath: str, force_reindex: bool = False):
     collection_name = "code_ccp"
 
     try:
-        collection = client.get_collection(collection_name)
+        collection = client.get_collection(
+            collection_name, embedding_function=get_embedding_function()
+        )
         if collection.count() > 0 and not force_reindex:
             logger.info(
                 f"Collection '{collection_name}' déjà indexée "
@@ -46,6 +59,7 @@ def index_code_commande_publique(filepath: str, force_reindex: bool = False):
     collection = client.create_collection(
         name=collection_name,
         metadata={"description": "Code de la Commande Publique - Articles indexés"},
+        embedding_function=get_embedding_function(),
     )
 
     text = Path(filepath).read_text(encoding="utf-8")
@@ -138,6 +152,7 @@ def index_ccag(filepath: str, domaine: str, session_id: str):
     collection = client.create_collection(
         name=collection_name,
         metadata={"domaine": domaine, "type": "ccag"},
+        embedding_function=get_embedding_function(),
     )
 
     text = extract_text_from_docx(filepath)
@@ -212,6 +227,7 @@ def index_cctp(filepath: str, session_id: str):
     collection = client.create_collection(
         name=collection_name,
         metadata={"type": "cctp_reference"},
+        embedding_function=get_embedding_function(),
     )
 
     text = extract_text_from_docx(filepath)

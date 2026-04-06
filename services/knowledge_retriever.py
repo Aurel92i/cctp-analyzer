@@ -6,15 +6,26 @@ Pour chaque clause du CCAP à analyser, récupère les articles
 les plus pertinents du Code CCP, du CCAG et du CCTP via ChromaDB.
 """
 
+import os
 import logging
 from pathlib import Path
 
 import chromadb
+import chromadb.utils.embedding_functions as embedding_functions
 
 logger = logging.getLogger(__name__)
 
 VECTOR_STORE_DIR = Path(__file__).parent.parent / "data" / "vector_store"
 client = chromadb.PersistentClient(path=str(VECTOR_STORE_DIR))
+
+
+def get_embedding_function():
+    """Retourne une embedding function API (OpenRouter/OpenAI) au lieu d'un modèle local."""
+    return embedding_functions.OpenAIEmbeddingFunction(
+        api_key=os.getenv("OPENROUTER_API_KEY"),
+        api_base="https://openrouter.ai/api/v1",
+        model_name="openai/text-embedding-3-small",
+    )
 
 
 def retrieve_relevant_context(
@@ -45,7 +56,9 @@ def retrieve_relevant_context(
 
     # 1. Recherche dans le Code CCP
     try:
-        ccp_collection = client.get_collection("code_ccp")
+        ccp_collection = client.get_collection(
+            "code_ccp", embedding_function=get_embedding_function()
+        )
         ccp_results = ccp_collection.query(
             query_texts=[clause_text],
             n_results=min(n_results_ccp, ccp_collection.count()),
@@ -81,7 +94,9 @@ def retrieve_relevant_context(
 
     # 2. Recherche dans le CCAG de la session
     try:
-        ccag_collection = client.get_collection(f"ccag_{session_id}")
+        ccag_collection = client.get_collection(
+            f"ccag_{session_id}", embedding_function=get_embedding_function()
+        )
         ccag_results = ccag_collection.query(
             query_texts=[clause_text],
             n_results=min(n_results_ccag, ccag_collection.count()),
@@ -117,7 +132,9 @@ def retrieve_relevant_context(
 
     # 3. Recherche dans le CCTP de la session (référence technique)
     try:
-        cctp_collection = client.get_collection(f"cctp_{session_id}")
+        cctp_collection = client.get_collection(
+            f"cctp_{session_id}", embedding_function=get_embedding_function()
+        )
         cctp_results = cctp_collection.query(
             query_texts=[clause_text],
             n_results=min(n_results_cctp, cctp_collection.count()),
