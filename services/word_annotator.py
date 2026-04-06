@@ -186,42 +186,78 @@ class WordCommentAnnotator:
             return ""
         # Supprimer espaces multiples, convertir en minuscules
         return ' '.join(text.lower().split())
-    
-    def _find_paragraph_with_text(self, search_text: str):
-        """
-        Trouve le paragraphe contenant le texte recherché.
-        
-        Args:
-            search_text: Texte à rechercher
-        
-        Returns:
-            tuple: (paragraph, found) ou (None, False)
-        """
-        search_normalized = self._normalize_text(search_text)
-        
-        if len(search_normalized) < 5:
-            return None, False
-        
-        # Chercher dans les paragraphes principaux
+
+    def _iter_all_paragraphs(self):
+        """Itère sur tous les paragraphes du document (corps + tableaux)."""
         for para in self.doc.paragraphs:
-            para_normalized = self._normalize_text(para.text)
-            if search_normalized in para_normalized:
-                return para, True
-            # Recherche partielle (premiers mots)
-            if len(search_normalized) > 50:
-                search_start = search_normalized[:50]
-                if search_start in para_normalized:
-                    return para, True
-        
-        # Chercher dans les tableaux
+            yield para
         for table in self.doc.tables:
             for row in table.rows:
                 for cell in row.cells:
                     for para in cell.paragraphs:
-                        para_normalized = self._normalize_text(para.text)
-                        if search_normalized in para_normalized:
-                            return para, True
-        
+                        yield para
+
+    def _find_paragraph_with_text(self, search_text: str):
+        """
+        Trouve le paragraphe contenant le texte recherché.
+        Utilise un matching flou (SequenceMatcher) pour tolérer les
+        différences mineures entre l'extrait LLM et le texte réel.
+
+        Returns:
+            tuple: (paragraph, found) ou (None, False)
+        """
+        from difflib import SequenceMatcher
+
+        if not search_text or len(search_text) < 10:
+            return None, False
+
+        search_normalized = self._normalize_text(search_text)
+
+        # Stratégie 1 : recherche exacte (rapide)
+        for para in self._iter_all_paragraphs():
+            para_normalized = self._normalize_text(para.text)
+            if search_normalized in para_normalized:
+                return para, True
+
+        # Stratégie 2 : recherche par les 50 premiers caractères
+        search_start = search_normalized[:50]
+        for para in self._iter_all_paragraphs():
+            para_normalized = self._normalize_text(para.text)
+            if len(para_normalized) > 20 and search_start in para_normalized:
+                return para, True
+
+        # Stratégie 3 : matching flou (SequenceMatcher)
+        best_match = None
+        best_score = 0
+        threshold = 0.65
+
+        for para in self._iter_all_paragraphs():
+            para_normalized = self._normalize_text(para.text)
+            if len(para_normalized) < 20:
+                continue
+
+            # Comparer des fenêtres glissantes si le paragraphe est long
+            if len(para_normalized) > len(search_normalized) * 2:
+                window = len(search_normalized)
+                for start in range(0, len(para_normalized) - window + 1, 20):
+                    chunk = para_normalized[start:start + window]
+                    score = SequenceMatcher(
+                        None, search_normalized[:100], chunk[:100]
+                    ).ratio()
+                    if score > best_score:
+                        best_score = score
+                        best_match = para
+            else:
+                score = SequenceMatcher(
+                    None, search_normalized[:100], para_normalized[:100]
+                ).ratio()
+                if score > best_score:
+                    best_score = score
+                    best_match = para
+
+        if best_match and best_score >= threshold:
+            return best_match, True
+
         return None, False
     
     def _create_comment_element(self, comment_id: int, text: str) -> etree._Element:

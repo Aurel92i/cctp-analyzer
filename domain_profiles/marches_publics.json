@@ -1,0 +1,36 @@
+{
+    "nom": "Marchés Publics",
+    "description": "Audit de conformité CCAP/CCTP pour marchés publics français",
+    "documents_reference": ["CCAG", "Code de la Commande Publique"],
+    "domaines_ccag": {
+        "travaux": "Travaux",
+        "fournitures": "Fournitures courantes et services",
+        "pi": "Prestations intellectuelles",
+        "tic": "Techniques de l'information et de la communication",
+        "moe": "Maîtrise d'œuvre",
+        "industriel": "Marchés industriels"
+    },
+    "checklist_obligatoire": [
+        "Objet et étendue du marché",
+        "Pièces constitutives du marché (ordre de priorité)",
+        "Prix et modalités de règlement",
+        "Révision des prix (R. 2112-13)",
+        "Délai global d'exécution",
+        "Pénalités de retard",
+        "Garanties financières et retenue de garantie",
+        "Assurances obligatoires",
+        "Sous-traitance (L. 2193-1 à L. 2193-14)",
+        "Conditions de résiliation",
+        "Modalités de réception des prestations",
+        "Propriété intellectuelle (si applicable)",
+        "Clauses environnementales (L. 2111-2 et L. 2112-2)",
+        "Avances et acomptes"
+    ],
+    "regles_ordre_public_non_derogeables": [
+        "Interdiction de la clause de renonciation à recours",
+        "Obligation de clause de révision des prix pour les marchés > 3 mois (R. 2112-13)",
+        "Délai de paiement maximum 30 jours (R. 2192-10)",
+        "Obligation d'allotissement sauf exception motivée (L. 2113-10)",
+        "Droit à avance pour marchés > 50k€ et > 2 mois (R. 2191-3 à R. 2191-19)"
+    ]
+}

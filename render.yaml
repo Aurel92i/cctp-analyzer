@@ -8,14 +8,14 @@ services:
     name: cctp-analyzer
     runtime: python
     region: frankfurt  # Serveur en Europe (proche de la France)
-    plan: free         # Gratuit pour commencer (passer à "starter" si besoin)
-    
+    plan: starter      # starter requis pour RAM suffisante (ChromaDB + embeddings)
+
     # Commande de build
     buildCommand: pip install -r requirements.txt
-    
+
     # Commande de démarrage (timeout augmenté pour analyses multi-passes)
     startCommand: gunicorn app:app --bind 0.0.0.0:$PORT --timeout 600 --workers 2
-    
+
     # Variables d'environnement (à configurer dans le dashboard Render)
     envVars:
       - key: PYTHON_VERSION
@@ -26,6 +26,12 @@ services:
         sync: false  # À définir manuellement dans Render (secret)
       - key: SECRET_KEY
         generateValue: true  # Généré automatiquement par Render
-    
+      - key: MODEL_LIGHT
+        value: "openai/gpt-4o-mini"
+      - key: MODEL_MEDIUM
+        value: "anthropic/claude-sonnet-4-20250514"
+      - key: MODEL_EXPERT
+        value: "openai/gpt-4o"
+
     # Health check
     healthCheckPath: /health

@@ -27,6 +27,9 @@ outputs/*
 !uploads/cctp/.gitkeep
 !outputs/.gitkeep
 
+# Base vectorielle (générée au runtime)
+data/vector_store/
+
 # Logs
 *.log
 logs/

@@ -304,119 +304,71 @@ def analyze():
 
 
 def run_analysis(job_id):
-    """Exécute l'analyse du CCTP."""
-    from services.document_extractor import extract_ccag, extract_cctp, load_code_commande_publique
-    import shutil
-    
+    """Exécute l'analyse avec l'architecture multi-agents + RAG."""
     job = jobs[job_id]
-    
+
     try:
-        job["progress"] = 10
-        job["step"] = "Extraction du texte du CCAG..."
-        logger.info(f"[{job_id}] Extraction CCAG depuis {job['ccag_path']}")
-        
-        ccag_text = extract_ccag(job["ccag_path"])
-        job["ccag_chars"] = len(ccag_text)
-        logger.info(f"[{job_id}] CCAG extrait: {len(ccag_text)} caractères")
-        
-        job["progress"] = 20
-        job["step"] = "Extraction du texte du CCTP..."
-        logger.info(f"[{job_id}] Extraction CCTP depuis {job['cctp_path']}")
-        
-        cctp_text = extract_cctp(job["cctp_path"])
-        job["cctp_chars"] = len(cctp_text)
-        logger.info(f"[{job_id}] CCTP extrait: {len(cctp_text)} caractères")
-        
-        job["progress"] = 30
-        job["step"] = "Chargement du Code de la Commande Publique..."
-        logger.info(f"[{job_id}] Chargement Code CCP")
-        
-        code_ccp_text = load_code_commande_publique()
-        job["code_ccp_chars"] = len(code_ccp_text)
-        logger.info(f"[{job_id}] Code CCP chargé: {len(code_ccp_text)} caractères")
-        
-        job["extracted_texts"] = {
-            "ccag": ccag_text,
-            "cctp": cctp_text,
-            "code_ccp": code_ccp_text
-        }
-        
-        job["progress"] = 35
-        job["step"] = "Analyse multi-passes en cours (découpage en sections)..."
-        logger.info(f"[{job_id}] Lancement analyse GPT-4 MULTI-PASSES")
-        
-        from services.gpt_analyzer import analyze_cctp
-        
-        result = analyze_cctp(
-            ccag_text=ccag_text,
-            cctp_text=cctp_text,
-            code_ccp_text=code_ccp_text,
-            domaine=job["domaine"]
+        def progress_callback(progress, step):
+            job["progress"] = progress
+            job["step"] = step
+
+        from services.orchestrator import run_full_analysis
+
+        result = run_full_analysis(
+            ccag_path=job["ccag_path"],
+            cctp_path=job["cctp_path"],
+            domaine=job["domaine"],
+            session_id=job["session_id"],
+            progress_callback=progress_callback,
         )
-        
+
         if not result["success"]:
-            raise Exception(result.get("error", "Erreur inconnue lors de l'analyse GPT-4"))
-        
+            raise Exception(result.get("error", "Erreur inconnue"))
+
         job["remarques"] = result.get("remarques", [])
         job["synthese"] = result.get("synthese", "")
         job["statistiques"] = result.get("statistiques", {})
         job["niveau_risque"] = result.get("niveau_risque", "modéré")
         job["points_critiques"] = result.get("points_critiques", [])
-        
-        sections_analysees = result.get("statistiques", {}).get("sections_analysees", 0)
-        logger.info(f"[{job_id}] Analyse GPT-4 terminée: {len(job['remarques'])} remarques sur {sections_analysees} sections")
-        
-        job["progress"] = 70
-        job["step"] = "Préparation de l'annotation Word..."
-        
-        job["progress"] = 80
-        job["step"] = "Insertion des annotations dans le document..."
-        logger.info(f"[{job_id}] Annotation Word avec {len(job['remarques'])} remarques")
-        
+
+        # Annotation Word
+        job["progress"] = 92
+        job["step"] = "Insertion des commentaires dans le document Word..."
+
         from services.word_annotator import annotate_document
-        
+
         output_filename = f"CCTP_annote_{job_id[:8]}.docx"
         output_path = OUTPUTS_DIR / output_filename
-        
+
         annotation_result = annotate_document(
             cctp_path=job["cctp_path"],
             remarques=job["remarques"],
-            output_path=str(output_path)
+            output_path=str(output_path),
         )
-        
+
         if not annotation_result["success"]:
-            raise Exception(annotation_result.get("error", "Erreur lors de l'annotation"))
-        
+            raise Exception(annotation_result.get("error", "Erreur annotation"))
+
         job["output_path"] = str(output_path)
         job["annotation_stats"] = {
-            "highlights_added": annotation_result.get("highlights_added", 0),
-            "highlights_not_found": annotation_result.get("highlights_not_found", 0)
+            "comments_added": annotation_result.get("comments_added", 0),
+            "comments_not_found": annotation_result.get("comments_not_found", 0),
         }
-        
-        logger.info(f"[{job_id}] Annotation terminée: {annotation_result.get('highlights_added', 0)} passages surlignés")
-        
+
+        logger.info(
+            f"[{job_id}] Annotation terminée: "
+            f"{annotation_result.get('comments_added', 0)} commentaires ajoutés"
+        )
+
         job["progress"] = 100
         job["step"] = "Analyse terminée !"
         job["status"] = "completed"
         logger.info(f"[{job_id}] Analyse terminée avec succès")
-        logger.info(f"[{job_id}] Stats: CCAG={job.get('ccag_chars',0)} chars, CCTP={job.get('cctp_chars',0)} chars, CCP={job.get('code_ccp_chars',0)} chars")
-        
-    except FileNotFoundError as e:
-        logger.error(f"[{job_id}] Fichier non trouvé: {e}")
-        job["status"] = "error"
-        job["error"] = f"Fichier non trouvé: {e}"
-        job["step"] = "Erreur: fichier manquant"
-        
-    except ValueError as e:
-        logger.error(f"[{job_id}] Erreur de format: {e}")
-        job["status"] = "error"
-        job["error"] = f"Erreur de format: {e}"
-        job["step"] = "Erreur: format invalide"
-        
+
     except Exception as e:
         import traceback
-        logger.error(f"[{job_id}] Erreur inattendue: {e}")
-        logger.error(traceback.format_exc())
+        logger.error(f"[{job_id}] Erreur: {e}")
+        traceback.print_exc()
         job["status"] = "error"
         job["error"] = str(e)
         job["step"] = f"Erreur: {e}"

@@ -32,6 +32,13 @@ OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1/chat/completions"
 OPENROUTER_MODEL = os.getenv("OPENROUTER_MODEL", "openai/gpt-4-turbo")
 
 # =============================================================================
+# MODÈLES LLM PAR RÔLE (V2 multi-agents)
+# =============================================================================
+MODEL_LIGHT = os.getenv("MODEL_LIGHT", "openai/gpt-4o-mini")
+MODEL_MEDIUM = os.getenv("MODEL_MEDIUM", "anthropic/claude-sonnet-4-20250514")
+MODEL_EXPERT = os.getenv("MODEL_EXPERT", "openai/gpt-4o")
+
+# =============================================================================
 # PARAMÈTRES GPT-4
 # =============================================================================
 GPT_MAX_TOKENS = 8000
@@ -52,6 +59,12 @@ MAX_CHARS_PER_SECTION = 30000  # ~7.5k tokens par section
 # FICHIERS FIXES
 # =============================================================================
 CODE_COMMANDE_PUBLIQUE_FILE = DATA_DIR / "code_commande_publique.txt"
+
+# =============================================================================
+# BASE VECTORIELLE
+# =============================================================================
+VECTOR_STORE_DIR = DATA_DIR / "vector_store"
+VECTOR_STORE_DIR.mkdir(parents=True, exist_ok=True)
 
 # =============================================================================
 # UPLOAD
