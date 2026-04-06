@@ -1,12 +1,9 @@
 """
-CCTP Analyzer V2 - Agent Synthétiseur.
-Chardonnet Conseil - 2026
+CCAP Analyzer - Agent Synthétiseur.
+Lexigency - 2026
 
 Compile les résultats de tous les audits de clauses et produit
 une synthèse globale + remarques transversales.
-
-Utilise un modèle MOYEN (Claude Sonnet / GPT-4o-mini) car il compile,
-il ne raisonne pas sur du texte brut.
 """
 
 import logging
@@ -16,11 +13,11 @@ from services.llm_client import call_llm
 
 logger = logging.getLogger(__name__)
 
-SYSTEM_PROMPT = """Tu es un expert juridique senior qui produit des synthèses d'audit de marchés publics.
+SYSTEM_PROMPT = """Tu es un expert juridique senior qui produit des synthèses d'audit de CCAP pour les marchés publics.
 Tu reçois les résultats d'un audit clause par clause et tu dois :
 1. Identifier les problèmes transversaux (qui touchent plusieurs sections)
-2. Vérifier la cohérence globale
-3. Signaler les clauses obligatoires absentes du document entier
+2. Vérifier la cohérence globale du CCAP
+3. Signaler les clauses obligatoires absentes du CCAP entier
 4. Produire une synthèse exécutive
 
 Tu retournes UNIQUEMENT du JSON valide."""
@@ -33,11 +30,11 @@ USER_PROMPT_TEMPLATE = """## RÉSULTATS D'AUDIT CLAUSE PAR CLAUSE
 
 ---
 
-MISSION : Produis la synthèse finale de cet audit.
+MISSION : Produis la synthèse finale de cet audit de CCAP.
 
 FORMAT JSON :
 {{
-    "synthese_globale": "Analyse globale du document en 3-5 phrases",
+    "synthese_globale": "Analyse globale du CCAP en 3-5 phrases",
     "niveau_risque_global": "élevé|modéré|faible",
     "points_critiques": ["Point critique 1", "Point critique 2", "..."],
     "remarques_transversales": [
@@ -68,15 +65,7 @@ def synthesize(
     domaine_label: str,
     all_remarques: list,
 ) -> dict:
-    """
-    Produit la synthèse finale à partir des résultats d'audit.
-
-    Args:
-        audit_results: liste des résultats de agent_auditor pour chaque section
-        domaine_label: ex. "Travaux"
-        all_remarques: liste plate de toutes les remarques individuelles
-    """
-    # Résumer les résultats (pas besoin d'envoyer le détail de chaque remarque)
+    """Produit la synthèse finale à partir des résultats d'audit du CCAP."""
     summary_parts = []
     for ar in audit_results:
         section = ar.get("section_analysee", "?")
@@ -113,7 +102,6 @@ def synthesize(
     if not result["success"]:
         return _mechanical_synthesis(audit_results, all_remarques, domaine_label)
 
-    # Fusionner les remarques transversales
     transversales = result.get("remarques_transversales", [])
 
     return {
@@ -146,7 +134,7 @@ def _mechanical_synthesis(
     return {
         "success": True,
         "synthese": (
-            f"Audit {domaine_label} : {len(all_remarques)} remarques identifiées "
+            f"Audit CCAP {domaine_label} : {len(all_remarques)} remarques identifiées "
             f"({haute} haute, {moyenne} moyenne, {basse} basse)."
         ),
         "niveau_risque": niveau,

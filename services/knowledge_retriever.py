@@ -1,9 +1,9 @@
 """
-CCTP Analyzer V2 - Recherche vectorielle dans les documents de référence.
-Chardonnet Conseil - 2026
+CCAP Analyzer - Recherche vectorielle dans les documents de référence.
+Lexigency - 2026
 
-Pour chaque clause du CCAP/CCTP à analyser, récupère les articles
-les plus pertinents du Code CCP et du CCAG via ChromaDB.
+Pour chaque clause du CCAP à analyser, récupère les articles
+les plus pertinents du Code CCP, du CCAG et du CCTP via ChromaDB.
 """
 
 import logging
@@ -22,26 +22,24 @@ def retrieve_relevant_context(
     session_id: str,
     n_results_ccp: int = 7,
     n_results_ccag: int = 5,
+    n_results_cctp: int = 3,
 ) -> dict:
     """
-    Pour une clause donnée, récupère les articles pertinents du Code CCP et du CCAG.
-
-    Args:
-        clause_text: texte de la clause à analyser
-        session_id: pour retrouver le CCAG indexé de cette session
-        n_results_ccp: nombre d'articles CCP à récupérer
-        n_results_ccag: nombre d'articles CCAG à récupérer
+    Pour une clause donnée, récupère les articles pertinents
+    du Code CCP, du CCAG et du CCTP.
 
     Returns:
         {
-            "code_ccp_extracts": "Article L. 2111-1\\n...\\n\\nArticle R. 2112-13\\n...",
-            "ccag_extracts": "Article 14 CCAG-Travaux\\n...\\n\\nArticle 15\\n...",
-            "sources": [{"source": "Code CCP", "numero": "L. 2111-1", "score": 0.85}, ...]
+            "code_ccp_extracts": "...",
+            "ccag_extracts": "...",
+            "cctp_extracts": "...",
+            "sources": [...]
         }
     """
     result = {
         "code_ccp_extracts": "",
         "ccag_extracts": "",
+        "cctp_extracts": "",
         "sources": [],
     }
 
@@ -116,5 +114,39 @@ def retrieve_relevant_context(
         result["ccag_extracts"] = (
             "[CCAG non indexé - analyse sans référence CCAG]"
         )
+
+    # 3. Recherche dans le CCTP de la session (référence technique)
+    try:
+        cctp_collection = client.get_collection(f"cctp_{session_id}")
+        cctp_results = cctp_collection.query(
+            query_texts=[clause_text],
+            n_results=min(n_results_cctp, cctp_collection.count()),
+        )
+
+        if (
+            cctp_results
+            and cctp_results["documents"]
+            and cctp_results["documents"][0]
+        ):
+            extracts = []
+            for doc, meta, distance in zip(
+                cctp_results["documents"][0],
+                cctp_results["metadatas"][0],
+                cctp_results["distances"][0],
+            ):
+                extracts.append(doc)
+                result["sources"].append(
+                    {
+                        "source": "CCTP",
+                        "numero": f"Chunk {meta.get('index', 'N/A')}",
+                        "score": round(1 - distance, 3),
+                    }
+                )
+
+            result["cctp_extracts"] = "\n\n---\n\n".join(extracts)
+
+    except Exception as e:
+        logger.debug(f"CCTP non indexé pour cette session: {e}")
+        result["cctp_extracts"] = ""
 
     return result

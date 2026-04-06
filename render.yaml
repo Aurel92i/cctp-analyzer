@@ -1,31 +1,28 @@
 # =============================================================================
-# CCTP Analyzer - Configuration Render
-# Chardonnet Conseil - Janvier 2026
+# CCAP Analyzer - Configuration Render
+# Lexigency - 2026
 # =============================================================================
 
 services:
   - type: web
-    name: cctp-analyzer
+    name: ccap-analyzer
     runtime: python
-    region: frankfurt  # Serveur en Europe (proche de la France)
-    plan: starter      # starter requis pour RAM suffisante (ChromaDB + embeddings)
+    region: frankfurt
+    plan: starter
 
-    # Commande de build
     buildCommand: pip install -r requirements.txt
 
-    # Commande de démarrage (timeout augmenté pour analyses multi-passes)
     startCommand: gunicorn app:app --bind 0.0.0.0:$PORT --timeout 600 --workers 2
 
-    # Variables d'environnement (à configurer dans le dashboard Render)
     envVars:
       - key: PYTHON_VERSION
         value: "3.11.0"
       - key: FLASK_ENV
         value: production
       - key: OPENROUTER_API_KEY
-        sync: false  # À définir manuellement dans Render (secret)
+        sync: false
       - key: SECRET_KEY
-        generateValue: true  # Généré automatiquement par Render
+        generateValue: true
       - key: MODEL_LIGHT
         value: "openai/gpt-4o-mini"
       - key: MODEL_MEDIUM
@@ -33,5 +30,4 @@ services:
       - key: MODEL_EXPERT
         value: "openai/gpt-4o"
 
-    # Health check
     healthCheckPath: /health

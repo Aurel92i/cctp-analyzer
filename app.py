@@ -4,8 +4,8 @@ Lexigency - 2026
 
 Application web d'analyse automatisée de CCAP pour les marchés publics.
 
-Documents de RÉFÉRENCE (zone gauche) : CCAG + CCTP
-Document à ANALYSER et ANNOTER (zone droite) : CCAP
+Documents de RÉFÉRENCE (zone gauche) : CCAG (pré-chargé) + CCTP (uploadé)
+Document à ANALYSER et ANNOTER (zone droite) : CCAP (uploadé)
 """
 
 import os
@@ -25,10 +25,10 @@ from werkzeug.utils import secure_filename
 
 from config import (
     get_config,
-    UPLOADS_CCAG_DIR,
     UPLOADS_CCTP_DIR,
     UPLOADS_CCAP_DIR,
     OUTPUTS_DIR,
+    CCAG_DIR,
     ALLOWED_EXTENSIONS,
     MAX_FILE_SIZE_MB,
     DOMAINES_CCAG,
@@ -91,8 +91,8 @@ def cleanup_old_files(directory, max_age_hours=24):
         logger.error(f"Erreur cleanup: {e}")
 
 
-def _upload_file(file_key, upload_dir, session_key_prefix, extra_form_fields=None):
-    """Logique commune d'upload pour CCAG, CCTP et CCAP."""
+def _upload_file(upload_dir, session_key_prefix):
+    """Logique commune d'upload pour CCTP et CCAP."""
     if "file" not in request.files:
         return jsonify({"success": False, "error": "Aucun fichier fourni"}), 400
 
@@ -116,28 +116,13 @@ def _upload_file(file_key, upload_dir, session_key_prefix, extra_form_fields=Non
     if session_id not in sessions:
         sessions[session_id] = {}
 
-    update = {
+    sessions[session_id].update({
         f"{session_key_prefix}_filename": filename,
         f"{session_key_prefix}_path": str(filepath),
         f"{session_key_prefix}_uploaded_at": datetime.now().isoformat(),
-    }
+    })
 
-    if extra_form_fields:
-        for field, default, valid_set in extra_form_fields:
-            val = request.form.get(field, default)
-            if valid_set and val not in valid_set:
-                val = default
-            update[field] = val
-
-    sessions[session_id].update(update)
-
-    resp = {"success": True, "filename": filename, "session_id": session_id}
-
-    if "domaine" in update:
-        resp["domaine"] = update["domaine"]
-        resp["domaine_label"] = DOMAINES_CCAG.get(update["domaine"], "")
-
-    return jsonify(resp)
+    return jsonify({"success": True, "filename": filename, "session_id": session_id})
 
 
 # =============================================================================
@@ -158,28 +143,14 @@ def health():
 # =============================================================================
 # ROUTES - UPLOAD DES FICHIERS
 # =============================================================================
-
-
-@app.route("/upload/ccag", methods=["POST"])
-def upload_ccag():
-    """Upload du fichier CCAG (document de référence)."""
-    try:
-        return _upload_file(
-            "file",
-            UPLOADS_CCAG_DIR,
-            "ccag",
-            extra_form_fields=[("domaine", "travaux", set(DOMAINES_CCAG.keys()))],
-        )
-    except Exception as e:
-        logger.error(f"Erreur upload CCAG: {e}")
-        return jsonify({"success": False, "error": str(e)}), 500
+# PAS de route /upload/ccag : le CCAG est pré-chargé depuis data/ccag/
 
 
 @app.route("/upload/cctp", methods=["POST"])
 def upload_cctp():
     """Upload du fichier CCTP (document de référence technique)."""
     try:
-        return _upload_file("file", UPLOADS_CCTP_DIR, "cctp")
+        return _upload_file(UPLOADS_CCTP_DIR, "cctp")
     except Exception as e:
         logger.error(f"Erreur upload CCTP: {e}")
         return jsonify({"success": False, "error": str(e)}), 500
@@ -189,7 +160,7 @@ def upload_cctp():
 def upload_ccap():
     """Upload du fichier CCAP (document à analyser et annoter)."""
     try:
-        return _upload_file("file", UPLOADS_CCAP_DIR, "ccap")
+        return _upload_file(UPLOADS_CCAP_DIR, "ccap")
     except Exception as e:
         logger.error(f"Erreur upload CCAP: {e}")
         return jsonify({"success": False, "error": str(e)}), 500
@@ -206,23 +177,36 @@ def analyze():
     try:
         data = request.get_json() or {}
         session_id = data.get("session_id") or get_session_id()
+        domaine = data.get("domaine", "travaux")
+
+        # Valider le domaine
+        if domaine not in DOMAINES_CCAG:
+            domaine = "travaux"
 
         if session_id not in sessions:
             return jsonify({"success": False, "error": "Session invalide. Veuillez uploader les fichiers."}), 400
 
         session = sessions[session_id]
 
-        if not session.get("ccag_path"):
-            return jsonify({"success": False, "error": "CCAG manquant. Veuillez uploader le CCAG."}), 400
-
+        # Le CCAP est obligatoire (uploadé par le client)
         if not session.get("ccap_path"):
             return jsonify({"success": False, "error": "CCAP manquant. Veuillez uploader le CCAP."}), 400
 
-        if not Path(session["ccag_path"]).exists():
-            return jsonify({"success": False, "error": "CCAG introuvable. Veuillez le ré-uploader."}), 400
-
         if not Path(session["ccap_path"]).exists():
             return jsonify({"success": False, "error": "CCAP introuvable. Veuillez le ré-uploader."}), 400
+
+        # Vérifier que le CCAG existe dans data/ccag/
+        ccag_file = CCAG_DIR / f"{domaine}.docx"
+        if not ccag_file.exists():
+            return jsonify({
+                "success": False,
+                "error": f"CCAG '{DOMAINES_CCAG[domaine]}' introuvable sur le serveur. Contactez l'administrateur.",
+            }), 500
+
+        # Le CCTP est optionnel
+        cctp_path = session.get("cctp_path")
+        if cctp_path and not Path(cctp_path).exists():
+            cctp_path = None
 
         job_id = generate_job_id()
 
@@ -231,17 +215,16 @@ def analyze():
             "progress": 0,
             "step": "Initialisation...",
             "session_id": session_id,
-            "ccag_path": session["ccag_path"],
-            "cctp_path": session.get("cctp_path"),  # optionnel
+            "cctp_path": cctp_path,
             "ccap_path": session["ccap_path"],
-            "domaine": session.get("domaine", "travaux"),
+            "domaine": domaine,
             "created_at": datetime.now().isoformat(),
             "output_path": None,
             "error": None,
             "remarques": None,
         }
 
-        logger.info(f"Job créé: {job_id} pour session {session_id}")
+        logger.info(f"Job créé: {job_id} pour session {session_id} (domaine: {domaine})")
 
         import threading
 
@@ -269,9 +252,8 @@ def run_analysis(job_id):
         from services.orchestrator import run_full_analysis
 
         result = run_full_analysis(
-            ccag_path=job["ccag_path"],
-            cctp_path=job.get("cctp_path"),  # peut être None
             ccap_path=job["ccap_path"],
+            cctp_path=job.get("cctp_path"),
             domaine=job["domaine"],
             session_id=job["session_id"],
             progress_callback=progress_callback,
@@ -296,7 +278,7 @@ def run_analysis(job_id):
         output_path = OUTPUTS_DIR / output_filename
 
         annotation_result = annotate_document(
-            cctp_path=job["ccap_path"],  # on annote le CCAP
+            ccap_path=job["ccap_path"],
             remarques=job["remarques"],
             output_path=str(output_path),
         )
@@ -404,27 +386,23 @@ def session_info():
     session_id = get_session_id()
 
     if session_id not in sessions:
-        return jsonify({"success": True, "session_id": session_id, "has_ccag": False, "has_cctp": False, "has_ccap": False})
+        return jsonify({"success": True, "session_id": session_id, "has_cctp": False, "has_ccap": False})
 
     session = sessions[session_id]
 
     return jsonify({
         "success": True,
         "session_id": session_id,
-        "has_ccag": bool(session.get("ccag_path")),
         "has_cctp": bool(session.get("cctp_path")),
         "has_ccap": bool(session.get("ccap_path")),
-        "ccag_filename": session.get("ccag_filename"),
         "cctp_filename": session.get("cctp_filename"),
         "ccap_filename": session.get("ccap_filename"),
-        "domaine": session.get("domaine"),
     })
 
 
 @app.route("/cleanup", methods=["POST"])
 def cleanup():
     try:
-        cleanup_old_files(UPLOADS_CCAG_DIR)
         cleanup_old_files(UPLOADS_CCTP_DIR)
         cleanup_old_files(UPLOADS_CCAP_DIR)
         cleanup_old_files(OUTPUTS_DIR)
@@ -454,21 +432,6 @@ def internal_error(error):
     return jsonify({"success": False, "error": "Erreur interne du serveur"}), 500
 
 
-@app.errorhandler(502)
-def bad_gateway(error):
-    return jsonify({"success": False, "error": "Erreur de passerelle"}), 502
-
-
-@app.errorhandler(503)
-def service_unavailable(error):
-    return jsonify({"success": False, "error": "Service temporairement indisponible"}), 503
-
-
-@app.errorhandler(504)
-def gateway_timeout(error):
-    return jsonify({"success": False, "error": "Délai d'attente dépassé"}), 504
-
-
 @app.errorhandler(Exception)
 def handle_exception(error):
     logger.error(f"Erreur non gérée: {error}")
@@ -480,7 +443,6 @@ def handle_exception(error):
 # =============================================================================
 
 if __name__ == "__main__":
-    cleanup_old_files(UPLOADS_CCAG_DIR, max_age_hours=24)
     cleanup_old_files(UPLOADS_CCTP_DIR, max_age_hours=24)
     cleanup_old_files(UPLOADS_CCAP_DIR, max_age_hours=24)
     cleanup_old_files(OUTPUTS_DIR, max_age_hours=24)

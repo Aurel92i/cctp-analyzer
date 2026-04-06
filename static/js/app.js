@@ -1,6 +1,9 @@
 /**
  * CCAP Analyzer - Frontend JavaScript
  * Lexigency - 2026
+ *
+ * Le CCAG est pré-chargé sur le serveur (data/ccag/).
+ * Le client uploade uniquement le CCTP (optionnel) et le CCAP (obligatoire).
  */
 
 // =============================================================================
@@ -8,9 +11,8 @@
 // =============================================================================
 
 let sessionId = null;
-let ccagFile = null;
-let cctpFile = null;  // optionnel (référence technique)
-let ccapFile = null;   // document à analyser
+let cctpFile = null;   // référence technique (optionnel)
+let ccapFile = null;    // document à analyser (obligatoire)
 let jobId = null;
 let isAnalyzing = false;
 let pollInterval = null;
@@ -21,18 +23,14 @@ let pollInterval = null;
 
 const elements = {
     // Dropzones
-    ccagDropzone: document.getElementById('ccag-dropzone'),
     cctpDropzone: document.getElementById('cctp-dropzone'),
     ccapDropzone: document.getElementById('ccap-dropzone'),
-    ccagInput: document.getElementById('ccag-input'),
     cctpInput: document.getElementById('cctp-input'),
     ccapInput: document.getElementById('ccap-input'),
 
     // Success states
-    ccagSuccess: document.getElementById('ccag-success'),
     cctpSuccess: document.getElementById('cctp-success'),
     ccapSuccess: document.getElementById('ccap-success'),
-    ccagFilename: document.getElementById('ccag-filename'),
     cctpFilename: document.getElementById('cctp-filename'),
     ccapFilename: document.getElementById('ccap-filename'),
 
@@ -76,7 +74,6 @@ const elements = {
 document.addEventListener('DOMContentLoaded', () => {
     initDropzones();
     initAnalyzeButton();
-    initDomainSelect();
 });
 
 // =============================================================================
@@ -84,12 +81,13 @@ document.addEventListener('DOMContentLoaded', () => {
 // =============================================================================
 
 function initDropzones() {
-    setupDropzone(elements.ccagDropzone, elements.ccagInput, 'ccag');
     setupDropzone(elements.cctpDropzone, elements.cctpInput, 'cctp');
     setupDropzone(elements.ccapDropzone, elements.ccapInput, 'ccap');
 }
 
 function setupDropzone(dropzone, input, type) {
+    if (!dropzone || !input) return;
+
     dropzone.addEventListener('click', (e) => {
         if (!e.target.classList.contains('btn-change')) {
             input.click();
@@ -135,9 +133,7 @@ function handleFile(file, type) {
     const dropzoneEl = document.getElementById(`${type}-dropzone`);
     const filenameEl = document.getElementById(`${type}-filename`);
 
-    if (type === 'ccag') {
-        ccagFile = file;
-    } else if (type === 'cctp') {
+    if (type === 'cctp') {
         cctpFile = file;
     } else {
         ccapFile = file;
@@ -153,10 +149,6 @@ function handleFile(file, type) {
 async function uploadFile(file, type) {
     const formData = new FormData();
     formData.append('file', file);
-
-    if (type === 'ccag') {
-        formData.append('domaine', elements.domaineSelect.value);
-    }
 
     try {
         const response = await fetch(`/upload/${type}`, {
@@ -184,29 +176,15 @@ function resetFile(type) {
     const dropzoneEl = document.getElementById(`${type}-dropzone`);
     const inputEl = document.getElementById(`${type}-input`);
 
-    if (type === 'ccag') {
-        ccagFile = null;
-    } else if (type === 'cctp') {
+    if (type === 'cctp') {
         cctpFile = null;
     } else {
         ccapFile = null;
     }
 
-    dropzoneEl.classList.remove('has-file');
-    inputEl.value = '';
+    if (dropzoneEl) dropzoneEl.classList.remove('has-file');
+    if (inputEl) inputEl.value = '';
     updateAnalyzeButton();
-}
-
-// =============================================================================
-// DOMAIN SELECT
-// =============================================================================
-
-function initDomainSelect() {
-    elements.domaineSelect.addEventListener('change', () => {
-        if (ccagFile) {
-            uploadFile(ccagFile, 'ccag');
-        }
-    });
 }
 
 // =============================================================================
@@ -218,8 +196,8 @@ function initAnalyzeButton() {
 }
 
 function updateAnalyzeButton() {
-    // CCAG + CCAP requis, CCTP optionnel
-    const canAnalyze = ccagFile && ccapFile && !isAnalyzing;
+    // Seul le CCAP est obligatoire (le CCTP est optionnel, le CCAG est pré-chargé)
+    const canAnalyze = ccapFile && !isAnalyzing;
     elements.btnAnalyze.disabled = !canAnalyze;
 }
 
@@ -239,7 +217,10 @@ async function startAnalysis() {
                 'Content-Type': 'application/json',
                 'X-Session-ID': sessionId
             },
-            body: JSON.stringify({ session_id: sessionId })
+            body: JSON.stringify({
+                session_id: sessionId,
+                domaine: elements.domaineSelect.value
+            })
         });
 
         const data = await response.json();
@@ -430,13 +411,12 @@ function resetAnalysis() {
 
     isAnalyzing = false;
     jobId = null;
-    ccagFile = null;
     cctpFile = null;
     ccapFile = null;
 
     elements.btnAnalyze.classList.remove('loading');
 
-    ['ccag', 'cctp', 'ccap'].forEach(type => {
+    ['cctp', 'ccap'].forEach(type => {
         const dz = document.getElementById(`${type}-dropzone`);
         const input = document.getElementById(`${type}-input`);
         if (dz) dz.classList.remove('has-file');

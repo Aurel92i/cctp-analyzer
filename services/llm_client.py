@@ -1,6 +1,6 @@
 """
-CCTP Analyzer V2 - Client LLM unifié.
-Chardonnet Conseil - 2026
+CCAP Analyzer - Client LLM unifié.
+Lexigency - 2026
 
 Abstrait les appels à OpenRouter avec différents modèles selon le rôle :
 - light  : modèle pas cher pour extraction de structure (GPT-4o-mini)
@@ -55,8 +55,8 @@ def call_llm(
     headers = {
         "Authorization": f"Bearer {OPENROUTER_API_KEY}",
         "Content-Type": "application/json",
-        "HTTP-Referer": "https://cctp-analyzer.chardonnet-conseil.fr",
-        "X-Title": "CCTP Analyzer V2",
+        "HTTP-Referer": "https://lexigency.fr",
+        "X-Title": "CCAP Analyzer",
     }
 
     payload = {

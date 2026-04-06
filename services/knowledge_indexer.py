@@ -1,16 +1,11 @@
 """
-CCTP Analyzer V2 - Indexation vectorielle des documents de référence légale.
-Chardonnet Conseil - 2026
+CCAP Analyzer - Indexation vectorielle des documents de référence légale.
+Lexigency - 2026
 
-Utilise ChromaDB (stockage local, sans serveur) pour indexer le Code de la
-Commande Publique et les CCAG uploadés par l'utilisateur.
-
-Usage :
-    # Indexer le Code CCP (une seule fois ou au démarrage)
-    index_code_commande_publique("data/code_commande_publique.txt")
-
-    # Indexer un CCAG uploadé
-    index_ccag("uploads/ccag/ccag_travaux.docx", domaine="travaux", session_id="abc123")
+Utilise ChromaDB (stockage local, sans serveur) pour indexer :
+- Le Code de la Commande Publique (collection "code_ccp")
+- Le CCAG du domaine (collection "ccag_{session_id}")
+- Le CCTP uploadé (collection "cctp_{session_id}")
 """
 
 import re
@@ -32,16 +27,10 @@ client = chromadb.PersistentClient(path=str(VECTOR_STORE_DIR))
 def index_code_commande_publique(filepath: str, force_reindex: bool = False):
     """
     Indexe le Code de la Commande Publique en chunks structurés.
-
-    Chaque article devient un chunk avec ses métadonnées :
-    - numero_article : "L. 2111-1", "R. 2112-13", etc.
-    - partie : "Législative" ou "Réglementaire"
-
-    La collection ChromaDB s'appelle "code_ccp".
+    Collection ChromaDB : "code_ccp".
     """
     collection_name = "code_ccp"
 
-    # Vérifier si déjà indexé
     try:
         collection = client.get_collection(collection_name)
         if collection.count() > 0 and not force_reindex:
@@ -59,31 +48,23 @@ def index_code_commande_publique(filepath: str, force_reindex: bool = False):
         metadata={"description": "Code de la Commande Publique - Articles indexés"},
     )
 
-    # Lire et parser le fichier
     text = Path(filepath).read_text(encoding="utf-8")
 
-    # Parser les articles du Code CCP.
-    # Format réel dans le fichier :
-    #   L. 1111-1 Ordonnance n° 2018-1074 ...
-    #   [contenu de l'article]
-    # Le numéro apparaît en début de ligne, suivi de la source législative.
+    # Parser les articles du Code CCP
     article_pattern = (
-        r'^((?:L|R|D)\.\s*\d{4}-\d+(?:-\d+)?)\s+'  # Numéro d'article
-        r'(?:Ordonnance|Décret|LOI|Loi|Code|Créé)[^\n]*\n'  # Ligne source
-        r'(.*?)'  # Contenu
-        r'(?=^(?:L|R|D)\.\s*\d{4}-\d+\s+(?:Ordonnance|Décret|LOI|Loi|Code|Créé)|'
-        r'^p\.\d+\s|'  # Pagination
-        r'^Partie\s|^PREMIÈRE|^DEUXIÈME|^TROISIÈME|'  # Parties
-        r'\Z)'
+        r"^((?:L|R|D)\.\s*\d{4}-\d+(?:-\d+)?)\s+"
+        r"(?:Ordonnance|Décret|LOI|Loi|Code|Créé)[^\n]*\n"
+        r"(.*?)"
+        r"(?=^(?:L|R|D)\.\s*\d{4}-\d+\s+(?:Ordonnance|Décret|LOI|Loi|Code|Créé)|"
+        r"^p\.\d+\s|"
+        r"^Partie\s|^PREMIÈRE|^DEUXIÈME|^TROISIÈME|"
+        r"\Z)"
     )
 
     articles = re.findall(article_pattern, text, re.DOTALL | re.MULTILINE)
 
     if not articles:
-        # Fallback : découper en chunks de ~2000 chars avec overlap
-        logger.warning(
-            "Pas d'articles détectés par regex, découpage en chunks"
-        )
+        logger.warning("Pas d'articles détectés par regex, découpage en chunks")
         chunks = chunk_text_with_overlap(text, chunk_size=2000, overlap=200)
         for i, chunk in enumerate(chunks):
             collection.add(
@@ -96,7 +77,6 @@ def index_code_commande_publique(filepath: str, force_reindex: bool = False):
         )
         return collection
 
-    # Indexer chaque article
     documents = []
     metadatas = []
     ids = []
@@ -126,7 +106,6 @@ def index_code_commande_publique(filepath: str, force_reindex: bool = False):
         ids.append(f"art_{numero.replace(' ', '_').replace('.', '_')}")
 
     if documents:
-        # ChromaDB recommande des batch <= 5000
         batch_size = 100
         for i in range(0, len(documents), batch_size):
             collection.add(
@@ -143,21 +122,14 @@ def index_code_commande_publique(filepath: str, force_reindex: bool = False):
 
 def index_ccag(filepath: str, domaine: str, session_id: str):
     """
-    Indexe un CCAG uploadé en chunks structurés.
-
-    Chaque article du CCAG devient un chunk.
-    La collection s'appelle "ccag_{session_id}" pour isoler par session.
-
-    Args:
-        filepath: chemin vers le .docx du CCAG
-        domaine: "travaux", "fournitures", "pi", "tic", "moe", "industriel"
-        session_id: identifiant de session pour isoler les données
+    Indexe un CCAG en chunks structurés.
+    Le fichier CCAG provient de data/ccag/{domaine}.docx (pré-chargé).
+    Collection : "ccag_{session_id}".
     """
     from services.document_extractor import extract_text_from_docx
 
     collection_name = f"ccag_{session_id}"
 
-    # Supprimer si existe
     try:
         client.delete_collection(collection_name)
     except Exception:
@@ -171,17 +143,15 @@ def index_ccag(filepath: str, domaine: str, session_id: str):
     text = extract_text_from_docx(filepath)
 
     # Parser les articles du CCAG
-    # Pattern : "Article 1", "Article 2.1", "ARTICLE 14", etc.
     article_pattern = (
-        r'(?:ARTICLE|Article)\s+(\d+(?:\.\d+)?(?:\.\d+)?)'
-        r'\s*[-–:.)]?\s*'
-        r'(.*?)'
-        r'(?=(?:ARTICLE|Article)\s+\d+|$)'
+        r"(?:ARTICLE|Article)\s+(\d+(?:\.\d+)?(?:\.\d+)?)"
+        r"\s*[-–:.)]?\s*"
+        r"(.*?)"
+        r"(?=(?:ARTICLE|Article)\s+\d+|$)"
     )
     articles = re.findall(article_pattern, text, re.DOTALL | re.IGNORECASE)
 
     if not articles:
-        # Fallback chunks
         chunks = chunk_text_with_overlap(text, chunk_size=2000, overlap=200)
         for i, chunk in enumerate(chunks):
             collection.add(
@@ -225,9 +195,42 @@ def index_ccag(filepath: str, domaine: str, session_id: str):
     return collection
 
 
+def index_cctp(filepath: str, session_id: str):
+    """
+    Indexe le CCTP uploadé comme document de référence technique.
+    Collection : "cctp_{session_id}".
+    """
+    from services.document_extractor import extract_text_from_docx
+
+    collection_name = f"cctp_{session_id}"
+
+    try:
+        client.delete_collection(collection_name)
+    except Exception:
+        pass
+
+    collection = client.create_collection(
+        name=collection_name,
+        metadata={"type": "cctp_reference"},
+    )
+
+    text = extract_text_from_docx(filepath)
+    chunks = chunk_text_with_overlap(text, chunk_size=2000, overlap=200)
+
+    for i, chunk in enumerate(chunks):
+        collection.add(
+            documents=[chunk],
+            metadatas=[{"type": "cctp_ref", "index": i}],
+            ids=[f"cctp_ref_{i}"],
+        )
+
+    logger.info(f"CCTP référence indexé : {collection.count()} chunks")
+    return collection
+
+
 def cleanup_session_collections(session_id: str):
     """Supprime les collections associées à une session."""
-    for prefix in ("ccag_", "cctp_ref_"):
+    for prefix in ("ccag_", "cctp_"):
         try:
             client.delete_collection(f"{prefix}{session_id}")
             logger.info(f"Collection {prefix}{session_id} supprimée")
@@ -251,12 +254,14 @@ def chunk_text_with_overlap(
 
 
 def _clean_article_content(content: str) -> str:
-    """Nettoie le contenu d'un article (supprime pagination, liens, etc.)."""
-    # Supprimer les lignes de pagination "p.XX Code de la commande publique"
-    content = re.sub(r'p\.\d+\s+Code de la commande publique\s*', '', content)
-    # Supprimer les lignes de référence externe
-    content = re.sub(r'^(?:service-public\.fr|Récemment au Bulletin)[^\n]*$', '', content, flags=re.MULTILINE)
-    content = re.sub(r'^>\s+[^\n]*$', '', content, flags=re.MULTILINE)
-    # Supprimer les lignes vides multiples
-    content = re.sub(r'\n{3,}', '\n\n', content)
+    """Nettoie le contenu d'un article."""
+    content = re.sub(r"p\.\d+\s+Code de la commande publique\s*", "", content)
+    content = re.sub(
+        r"^(?:service-public\.fr|Récemment au Bulletin)[^\n]*$",
+        "",
+        content,
+        flags=re.MULTILINE,
+    )
+    content = re.sub(r"^>\s+[^\n]*$", "", content, flags=re.MULTILINE)
+    content = re.sub(r"\n{3,}", "\n\n", content)
     return content.strip()

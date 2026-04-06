@@ -1,13 +1,9 @@
-# =============================================================================
-# CCTP Analyzer - .gitignore
-# =============================================================================
-
 # Environnement Python
-venv/
-env/
 .env
-*.pyc
+venv/
+.venv/
 __pycache__/
+*.pyc
 *.pyo
 *.pyd
 .Python
@@ -19,16 +15,19 @@ __pycache__/
 *.swo
 *~
 
-# Fichiers uploadés et générés (ne pas commiter)
-uploads/ccag/*
+# Fichiers uploadés (temporaires)
 uploads/cctp/*
-outputs/*
-!uploads/ccag/.gitkeep
 !uploads/cctp/.gitkeep
+uploads/ccap/*
+!uploads/ccap/.gitkeep
+
+# Fichiers de sortie (temporaires)
+outputs/*
 !outputs/.gitkeep
 
 # Base vectorielle (générée au runtime)
-data/vector_store/
+data/vector_store/*
+!data/vector_store/.gitkeep
 
 # Logs
 *.log
@@ -37,9 +36,6 @@ logs/
 # OS
 .DS_Store
 Thumbs.db
-
-# Docker
-.docker/
 
 # Tests
 .pytest_cache/

@@ -1,15 +1,12 @@
 """
-CCTP Analyzer V2 - Agent Auditeur.
-Chardonnet Conseil - 2026
+CCAP Analyzer - Agent Auditeur.
+Lexigency - 2026
 
-Analyse une clause individuelle en la comparant aux articles pertinents
-du Code CCP et du CCAG (fournis par le RAG).
+Analyse une clause individuelle du CCAP en la comparant aux articles pertinents
+du Code CCP, du CCAG et du CCTP (fournis par le RAG).
 
 Utilise le MEILLEUR modèle disponible (GPT-4o / Claude Opus) car c'est
 le cœur du raisonnement juridique.
-
-Chaque appel ne reçoit que ~10-15k tokens de contexte
-(la clause + les 5-10 articles pertinents), pas les documents entiers.
 """
 
 import logging
@@ -18,13 +15,13 @@ from services.llm_client import call_llm
 
 logger = logging.getLogger(__name__)
 
-SYSTEM_PROMPT = """Tu es un expert juridique senior en marchés publics français, spécialisé dans l'audit de conformité des documents contractuels.
+SYSTEM_PROMPT = """Tu es un expert juridique senior en marchés publics français, spécialisé dans l'audit de conformité des CCAP (Cahiers des Clauses Administratives Particulières).
 
-Tu analyses une clause spécifique d'un document client (CCAP ou CCTP) en la comparant aux articles pertinents du CCAG et du Code de la Commande Publique qui te sont fournis.
+Tu analyses une clause spécifique du CCAP en la comparant aux articles pertinents du CCAG, du Code de la Commande Publique et du CCTP qui te sont fournis.
 
 RÈGLES ABSOLUES :
 1. Ne cite QUE des articles qui sont EFFECTIVEMENT dans le contexte fourni. Ne JAMAIS inventer de référence.
-2. L'extrait_texte doit être une copie EXACTE et LONGUE (30-100 mots) du passage du document client. C'est CRITIQUE pour le retrouver ensuite dans le fichier Word.
+2. L'extrait_texte doit être une copie EXACTE et LONGUE (30-100 mots) du passage du CCAP analysé. C'est CRITIQUE pour le retrouver ensuite dans le fichier Word.
 3. Chaque remarque doit avoir une base juridique solide, pas juste une opinion.
 4. Classe la gravité avec rigueur : "haute" = illégal ou bloquant pour le marché, "moyenne" = risque juridique concret, "basse" = amélioration recommandée.
 5. Si la clause est conforme, dis-le explicitement : ne force pas des remarques là où il n'y en a pas.
@@ -33,7 +30,7 @@ Tu retournes UNIQUEMENT du JSON valide."""
 
 USER_PROMPT_TEMPLATE = """## CONTEXTE
 - Domaine : {domaine} ({domaine_label})
-- Document analysé : {type_document}
+- Document analysé : CCAP (Cahier des Clauses Administratives Particulières)
 - Section : {section_numero} - {section_titre}
 
 ## ARTICLES DU CODE DE LA COMMANDE PUBLIQUE (pertinents)
@@ -42,17 +39,21 @@ USER_PROMPT_TEMPLATE = """## CONTEXTE
 ## ARTICLES DU CCAG-{domaine_label} (pertinents)
 {ccag_extracts}
 
-## CLAUSE À ANALYSER
+## EXTRAITS DU CCTP (référence technique, si disponible)
+{cctp_extracts}
+
+## CLAUSE DU CCAP À ANALYSER
 {clause_text}
 
 ---
 
-MISSION : Audite cette clause. Identifie :
+MISSION : Audite cette clause du CCAP. Identifie :
 1. Non-conformités au CCAG (dérogations non justifiées, contradictions)
 2. Violations du Code de la Commande Publique (clauses illégales)
 3. Clauses abusives ou déséquilibrées
 4. Imprécisions juridiques créant un risque
-5. Clauses manquantes obligatoires dans cette section
+5. Incohérences entre le CCAP et le CCTP (si extraits CCTP fournis)
+6. Clauses manquantes obligatoires dans cette section
 
 FORMAT JSON :
 {{
@@ -60,7 +61,7 @@ FORMAT JSON :
     "conformite_globale": "conforme|non-conforme|partiellement-conforme",
     "remarques": [
         {{
-            "extrait_texte": "COPIE EXACTE ET LONGUE (30-100 mots) du passage problématique, mot pour mot tel qu'il apparaît dans le document",
+            "extrait_texte": "COPIE EXACTE ET LONGUE (30-100 mots) du passage problématique du CCAP, mot pour mot tel qu'il apparaît dans le document",
             "constat": "Description factuelle du problème",
             "probleme": "Explication du risque juridique concret",
             "references_juridiques": "Article X CCAG, Article L.XXXX-X CCP (UNIQUEMENT ceux du contexte fourni)",
@@ -81,10 +82,12 @@ def audit_clause(
     ccag_extracts: str,
     domaine: str,
     domaine_label: str,
-    type_document: str = "CCAP/CCTP",
+    cctp_extracts: str = "",
 ) -> dict:
     """
-    Audite une clause individuelle.
+    Audite une clause individuelle du CCAP.
+
+    Les références sont : CCAG + Code CCP + CCTP.
 
     Returns:
         {
@@ -97,11 +100,11 @@ def audit_clause(
     prompt = USER_PROMPT_TEMPLATE.format(
         domaine=domaine,
         domaine_label=domaine_label,
-        type_document=type_document,
         section_numero=section_numero,
         section_titre=section_titre,
         code_ccp_extracts=code_ccp_extracts or "[Aucun article CCP pertinent trouvé]",
         ccag_extracts=ccag_extracts or "[Aucun article CCAG pertinent trouvé]",
+        cctp_extracts=cctp_extracts or "[Pas de CCTP fourni]",
         clause_text=clause_text,
     )
 

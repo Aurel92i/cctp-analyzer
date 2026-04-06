@@ -1,8 +1,8 @@
 """
-CCTP Analyzer V2 - Agent Structureur.
-Chardonnet Conseil - 2026
+CCAP Analyzer - Agent Structureur.
+Lexigency - 2026
 
-Extrait la table des matières structurée d'un document CCAP/CCTP.
+Extrait la table des matières structurée d'un CCAP.
 Utilise un modèle LÉGER (GPT-4o-mini) car c'est de l'extraction
 de structure, pas du raisonnement juridique.
 """
@@ -45,10 +45,7 @@ Réponds UNIQUEMENT en JSON :
 
 def extract_structure(document_text: str) -> dict:
     """
-    Extrait la structure d'un document.
-
-    Args:
-        document_text: texte complet du document
+    Extrait la structure d'un document CCAP.
 
     Returns:
         {
@@ -57,7 +54,6 @@ def extract_structure(document_text: str) -> dict:
             "sections": [{"numero": "...", "titre": "...", "start_char": N, "end_char": N}]
         }
     """
-    # Tronquer si trop long (l'agent léger a une fenêtre ~16k tokens)
     max_chars = 60000
     truncated = document_text[:max_chars]
     if len(document_text) > max_chars:
@@ -78,8 +74,6 @@ def extract_structure(document_text: str) -> dict:
         return extract_structure_regex(document_text)
 
     sections = result.get("sections", [])
-
-    # Valider et corriger les positions
     sections = _validate_sections(sections, document_text)
 
     if not sections:
@@ -88,22 +82,16 @@ def extract_structure(document_text: str) -> dict:
 
     return {
         "success": True,
-        "type_document": result.get("type_document", "inconnu"),
+        "type_document": result.get("type_document", "CCAP"),
         "sections": sections,
     }
 
 
 def extract_structure_regex(text: str) -> dict:
-    """
-    Fallback : extraction de structure par regex quand le LLM échoue.
-    Détecte les patterns courants dans les CCAP/CCTP/CCAG.
-    """
+    """Fallback : extraction de structure par regex."""
     patterns = [
-        # "ARTICLE 1 - Titre" ou "ARTICLE 1 : Titre"
         (r"(?:ARTICLE|Article)\s+(\d+(?:\.\d+)?)\s*[-–:\.]\s*([^\n]+)"),
-        # "I - Titre" ou "I. Titre"
         (r"^((?:I{1,3}|IV|VI{0,3}|IX|X{0,3}))\s*[-–:\.]\s*([^\n]+)"),
-        # "1. Titre" ou "1 - Titre"
         (r"^(\d+(?:\.\d+)?)\s*[-–:\.]\s*([A-Z][^\n]+)"),
     ]
 
@@ -129,7 +117,6 @@ def extract_structure_regex(text: str) -> dict:
             break
 
     if not sections:
-        # Dernier recours : chunks de taille fixe
         chunk_size = 3000
         for i in range(0, len(text), chunk_size):
             sections.append(
@@ -143,18 +130,13 @@ def extract_structure_regex(text: str) -> dict:
 
     return {
         "success": True,
-        "type_document": "inconnu",
+        "type_document": "CCAP",
         "sections": sections,
     }
 
 
 def _validate_sections(sections: list, full_text: str) -> list:
-    """
-    Valide et corrige les positions start_char/end_char retournées par le LLM.
-
-    Le LLM donne souvent des positions approximatives. On recale chaque section
-    en cherchant le titre dans le texte réel.
-    """
+    """Valide et corrige les positions start_char/end_char."""
     text_len = len(full_text)
     validated = []
 
@@ -164,20 +146,15 @@ def _validate_sections(sections: list, full_text: str) -> list:
         start = section.get("start_char", 0)
         end = section.get("end_char", text_len)
 
-        # Borner les valeurs
         start = max(0, min(start, text_len))
         end = max(start + 1, min(end, text_len))
 
-        # Tenter de recaler sur le texte réel en cherchant le titre
         if titre:
-            # Chercher le titre exact
             idx = full_text.find(titre)
             if idx == -1:
-                # Chercher les premiers mots
                 words = titre.split()[:4]
                 search = " ".join(words)
                 idx = full_text.lower().find(search.lower())
-
             if idx >= 0:
                 start = idx
 
@@ -190,7 +167,6 @@ def _validate_sections(sections: list, full_text: str) -> list:
             }
         )
 
-    # Recalculer les end_char basés sur le start_char suivant
     for i in range(len(validated) - 1):
         validated[i]["end_char"] = validated[i + 1]["start_char"]
     if validated:

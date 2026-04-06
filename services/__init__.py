@@ -1,4 +1,4 @@
 """
-CCTP Analyzer V2 - Services
-Chardonnet Conseil - 2026
+CCAP Analyzer - Services
+Lexigency - 2026
 """
