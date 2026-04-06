@@ -31,19 +31,24 @@ logger = logging.getLogger(__name__)
 
 def run_full_analysis(
     ccag_path: str,
-    cctp_path: str,
+    ccap_path: str,
     domaine: str,
     session_id: str,
+    cctp_path: Optional[str] = None,
     progress_callback: Optional[Callable] = None,
 ) -> dict:
     """
-    Exécute l'analyse complète d'un CCAP/CCTP.
+    Exécute l'analyse complète d'un CCAP.
+
+    Le CCAP est le document analysé et annoté.
+    Le CCAG, le CCTP et le Code CCP servent de documents de référence.
 
     Args:
-        ccag_path: chemin vers le fichier CCAG .docx
-        cctp_path: chemin vers le fichier CCTP/CCAP .docx
+        ccag_path: chemin vers le fichier CCAG .docx (référence)
+        ccap_path: chemin vers le fichier CCAP .docx (à analyser)
         domaine: "travaux", "fournitures", etc.
         session_id: identifiant de session
+        cctp_path: chemin optionnel vers le CCTP .docx (référence technique)
         progress_callback: function(progress: int, step: str)
 
     Returns:
@@ -65,7 +70,7 @@ def run_full_analysis(
 
     try:
         # =================================================================
-        # PHASE 1 : INDEXATION
+        # PHASE 1 : INDEXATION DES DOCUMENTS DE RÉFÉRENCE
         # =================================================================
         update_progress(5, "Indexation du Code de la Commande Publique...")
         index_code_commande_publique(str(CODE_COMMANDE_PUBLIQUE_FILE))
@@ -73,16 +78,21 @@ def run_full_analysis(
         update_progress(10, f"Indexation du CCAG {domaine_label}...")
         index_ccag(ccag_path, domaine, session_id)
 
+        # Indexer le CCTP comme document de référence supplémentaire
+        if cctp_path:
+            update_progress(13, "Indexation du CCTP comme référence technique...")
+            _index_cctp_as_reference(cctp_path, session_id)
+
         # =================================================================
-        # PHASE 2 : EXTRACTION DU TEXTE ET DE LA STRUCTURE
+        # PHASE 2 : EXTRACTION DU TEXTE ET DE LA STRUCTURE DU CCAP
         # =================================================================
-        update_progress(15, "Extraction du texte du document client...")
+        update_progress(15, "Extraction du texte du CCAP...")
         from services.document_extractor import extract_text_from_docx
 
-        cctp_text = extract_text_from_docx(cctp_path)
+        ccap_text = extract_text_from_docx(ccap_path)
 
-        update_progress(20, "Analyse de la structure du document...")
-        structure = extract_structure(cctp_text)
+        update_progress(20, "Analyse de la structure du CCAP...")
+        structure = extract_structure(ccap_text)
         sections = structure.get("sections", [])
 
         if not sections:
@@ -110,8 +120,8 @@ def run_full_analysis(
 
             # Extraire le texte de la section
             start = section.get("start_char", 0)
-            end = section.get("end_char", len(cctp_text))
-            clause_text = cctp_text[start:end]
+            end = section.get("end_char", len(ccap_text))
+            clause_text = ccap_text[start:end]
 
             # Limiter la taille de la clause (~3k tokens)
             max_clause_chars = 12000
@@ -209,6 +219,35 @@ def run_full_analysis(
             "error": str(e),
             "remarques": [],
         }
+
+
+def _index_cctp_as_reference(cctp_path: str, session_id: str):
+    """Indexe le CCTP uploadé comme document de référence technique."""
+    from services.document_extractor import extract_text_from_docx
+    from services.knowledge_indexer import client, chunk_text_with_overlap
+
+    collection_name = f"cctp_ref_{session_id}"
+    try:
+        client.delete_collection(collection_name)
+    except Exception:
+        pass
+
+    collection = client.create_collection(
+        name=collection_name,
+        metadata={"type": "cctp_reference"},
+    )
+
+    text = extract_text_from_docx(cctp_path)
+    chunks = chunk_text_with_overlap(text, chunk_size=2000, overlap=200)
+
+    for i, chunk in enumerate(chunks):
+        collection.add(
+            documents=[chunk],
+            metadatas=[{"type": "cctp_ref", "index": i}],
+            ids=[f"cctp_ref_{i}"],
+        )
+
+    logger.info(f"CCTP référence indexé : {collection.count()} chunks")
 
 
 def deduplicate_remarques(remarques: List[Dict]) -> List[Dict]:

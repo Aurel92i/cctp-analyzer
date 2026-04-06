@@ -1,9 +1,11 @@
 """
-CCTP Analyzer - Application Flask
-Chardonnet Conseil - Janvier 2026
+CCAP Analyzer - Application Flask
+Lexigency - 2026
 
-Application web d'analyse automatisée de CCTP pour les marchés publics.
-Déploiement sur Render.
+Application web d'analyse automatisée de CCAP pour les marchés publics.
+
+Documents de RÉFÉRENCE (zone gauche) : CCAG + CCTP
+Document à ANALYSER et ANNOTER (zone droite) : CCAP
 """
 
 import os
@@ -11,15 +13,13 @@ import uuid
 import logging
 from datetime import datetime
 from pathlib import Path
-from functools import wraps
 
 from flask import (
-    Flask, 
-    request, 
-    jsonify, 
-    render_template, 
+    Flask,
+    request,
+    jsonify,
+    render_template,
     send_file,
-    abort
 )
 from werkzeug.utils import secure_filename
 
@@ -27,10 +27,11 @@ from config import (
     get_config,
     UPLOADS_CCAG_DIR,
     UPLOADS_CCTP_DIR,
+    UPLOADS_CCAP_DIR,
     OUTPUTS_DIR,
     ALLOWED_EXTENSIONS,
     MAX_FILE_SIZE_MB,
-    DOMAINES_CCAG
+    DOMAINES_CCAG,
 )
 
 # =============================================================================
@@ -40,57 +41,48 @@ from config import (
 app = Flask(__name__)
 app.config.from_object(get_config())
 
-# Configuration du logging
 logging.basicConfig(
     level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
 )
 logger = logging.getLogger(__name__)
 
 # =============================================================================
-# STOCKAGE EN MÉMOIRE DES JOBS (simplifié pour Render)
+# STOCKAGE EN MÉMOIRE DES JOBS
 # =============================================================================
 
-# Structure: { job_id: { status, progress, step, ccag_path, cctp_path, output_path, error, ... } }
 jobs = {}
-
-# Structure: { session_id: { ccag_filename, cctp_filename, ccag_path, cctp_path, domaine } }
 sessions = {}
 
 # =============================================================================
 # FONCTIONS UTILITAIRES
 # =============================================================================
 
+
 def allowed_file(filename):
-    """Vérifie si l'extension du fichier est autorisée."""
-    return '.' in filename and \
-           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+    return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
 def generate_session_id():
-    """Génère un ID de session unique."""
     return str(uuid.uuid4())
 
 
 def generate_job_id():
-    """Génère un ID de job unique."""
     return str(uuid.uuid4())
 
 
 def get_session_id():
-    """Récupère ou crée un ID de session depuis les headers/cookies."""
-    session_id = request.headers.get('X-Session-ID') or request.cookies.get('session_id')
+    session_id = request.headers.get("X-Session-ID") or request.cookies.get("session_id")
     if not session_id:
         session_id = generate_session_id()
     return session_id
 
 
 def cleanup_old_files(directory, max_age_hours=24):
-    """Supprime les fichiers plus vieux que max_age_hours."""
     try:
         now = datetime.now()
-        for filepath in Path(directory).glob('*'):
-            if filepath.is_file() and filepath.name != '.gitkeep':
+        for filepath in Path(directory).glob("*"):
+            if filepath.is_file() and filepath.name != ".gitkeep":
                 file_age = now - datetime.fromtimestamp(filepath.stat().st_mtime)
                 if file_age.total_seconds() > max_age_hours * 3600:
                     filepath.unlink()
@@ -99,130 +91,107 @@ def cleanup_old_files(directory, max_age_hours=24):
         logger.error(f"Erreur cleanup: {e}")
 
 
+def _upload_file(file_key, upload_dir, session_key_prefix, extra_form_fields=None):
+    """Logique commune d'upload pour CCAG, CCTP et CCAP."""
+    if "file" not in request.files:
+        return jsonify({"success": False, "error": "Aucun fichier fourni"}), 400
+
+    file = request.files["file"]
+
+    if file.filename == "":
+        return jsonify({"success": False, "error": "Nom de fichier vide"}), 400
+
+    if not allowed_file(file.filename):
+        return jsonify({"success": False, "error": "Extension non autorisée. Utilisez .docx"}), 400
+
+    session_id = get_session_id()
+    filename = secure_filename(file.filename)
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    unique_filename = f"{session_id}_{timestamp}_{filename}"
+    filepath = upload_dir / unique_filename
+
+    file.save(filepath)
+    logger.info(f"{session_key_prefix.upper()} uploadé: {filepath}")
+
+    if session_id not in sessions:
+        sessions[session_id] = {}
+
+    update = {
+        f"{session_key_prefix}_filename": filename,
+        f"{session_key_prefix}_path": str(filepath),
+        f"{session_key_prefix}_uploaded_at": datetime.now().isoformat(),
+    }
+
+    if extra_form_fields:
+        for field, default, valid_set in extra_form_fields:
+            val = request.form.get(field, default)
+            if valid_set and val not in valid_set:
+                val = default
+            update[field] = val
+
+    sessions[session_id].update(update)
+
+    resp = {"success": True, "filename": filename, "session_id": session_id}
+
+    if "domaine" in update:
+        resp["domaine"] = update["domaine"]
+        resp["domaine_label"] = DOMAINES_CCAG.get(update["domaine"], "")
+
+    return jsonify(resp)
+
+
 # =============================================================================
 # ROUTES - PAGES HTML
 # =============================================================================
 
-@app.route('/')
+
+@app.route("/")
 def index():
-    """Page d'accueil avec l'interface d'upload."""
-    return render_template('index.html', domaines=DOMAINES_CCAG)
+    return render_template("index.html", domaines=DOMAINES_CCAG)
 
 
-@app.route('/health')
+@app.route("/health")
 def health():
-    """Health check pour Render."""
-    return jsonify({
-        "status": "ok",
-        "timestamp": datetime.now().isoformat(),
-        "version": "1.0.0"
-    })
+    return jsonify({"status": "ok", "timestamp": datetime.now().isoformat(), "version": "2.0.0"})
 
 
 # =============================================================================
 # ROUTES - UPLOAD DES FICHIERS
 # =============================================================================
 
-@app.route('/upload/ccag', methods=['POST'])
+
+@app.route("/upload/ccag", methods=["POST"])
 def upload_ccag():
-    """Upload du fichier CCAG (référentiel)."""
+    """Upload du fichier CCAG (document de référence)."""
     try:
-        if 'file' not in request.files:
-            return jsonify({"success": False, "error": "Aucun fichier fourni"}), 400
-        
-        file = request.files['file']
-        
-        if file.filename == '':
-            return jsonify({"success": False, "error": "Nom de fichier vide"}), 400
-        
-        if not allowed_file(file.filename):
-            return jsonify({
-                "success": False, 
-                "error": f"Extension non autorisée. Utilisez: {', '.join(ALLOWED_EXTENSIONS)}"
-            }), 400
-        
-        domaine = request.form.get('domaine', 'travaux')
-        if domaine not in DOMAINES_CCAG:
-            domaine = 'travaux'
-        
-        session_id = get_session_id()
-        
-        filename = secure_filename(file.filename)
-        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-        unique_filename = f"{session_id}_{timestamp}_{filename}"
-        filepath = UPLOADS_CCAG_DIR / unique_filename
-        
-        file.save(filepath)
-        logger.info(f"CCAG uploadé: {filepath}")
-        
-        if session_id not in sessions:
-            sessions[session_id] = {}
-        
-        sessions[session_id].update({
-            "ccag_filename": filename,
-            "ccag_path": str(filepath),
-            "domaine": domaine,
-            "ccag_uploaded_at": datetime.now().isoformat()
-        })
-        
-        return jsonify({
-            "success": True,
-            "filename": filename,
-            "domaine": domaine,
-            "domaine_label": DOMAINES_CCAG[domaine],
-            "session_id": session_id
-        })
-        
+        return _upload_file(
+            "file",
+            UPLOADS_CCAG_DIR,
+            "ccag",
+            extra_form_fields=[("domaine", "travaux", set(DOMAINES_CCAG.keys()))],
+        )
     except Exception as e:
         logger.error(f"Erreur upload CCAG: {e}")
         return jsonify({"success": False, "error": str(e)}), 500
 
 
-@app.route('/upload/cctp', methods=['POST'])
+@app.route("/upload/cctp", methods=["POST"])
 def upload_cctp():
-    """Upload du fichier CCTP (à analyser)."""
+    """Upload du fichier CCTP (document de référence technique)."""
     try:
-        if 'file' not in request.files:
-            return jsonify({"success": False, "error": "Aucun fichier fourni"}), 400
-        
-        file = request.files['file']
-        
-        if file.filename == '':
-            return jsonify({"success": False, "error": "Nom de fichier vide"}), 400
-        
-        if not allowed_file(file.filename):
-            return jsonify({
-                "success": False, 
-                "error": f"Extension non autorisée. Utilisez: {', '.join(ALLOWED_EXTENSIONS)}"
-            }), 400
-        
-        session_id = get_session_id()
-        
-        filename = secure_filename(file.filename)
-        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-        unique_filename = f"{session_id}_{timestamp}_{filename}"
-        filepath = UPLOADS_CCTP_DIR / unique_filename
-        
-        file.save(filepath)
-        logger.info(f"CCTP uploadé: {filepath}")
-        
-        if session_id not in sessions:
-            sessions[session_id] = {}
-        
-        sessions[session_id].update({
-            "cctp_filename": filename,
-            "cctp_path": str(filepath),
-            "cctp_uploaded_at": datetime.now().isoformat()
-        })
-        
-        return jsonify({
-            "success": True,
-            "filename": filename,
-            "session_id": session_id
-        })
-        
+        return _upload_file("file", UPLOADS_CCTP_DIR, "cctp")
     except Exception as e:
         logger.error(f"Erreur upload CCTP: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route("/upload/ccap", methods=["POST"])
+def upload_ccap():
+    """Upload du fichier CCAP (document à analyser et annoter)."""
+    try:
+        return _upload_file("file", UPLOADS_CCAP_DIR, "ccap")
+    except Exception as e:
+        logger.error(f"Erreur upload CCAP: {e}")
         return jsonify({"success": False, "error": str(e)}), 500
 
 
@@ -230,84 +199,69 @@ def upload_cctp():
 # ROUTES - ANALYSE
 # =============================================================================
 
-@app.route('/analyze', methods=['POST'])
+
+@app.route("/analyze", methods=["POST"])
 def analyze():
-    """Lance l'analyse du CCTP."""
+    """Lance l'analyse du CCAP."""
     try:
         data = request.get_json() or {}
-        session_id = data.get('session_id') or get_session_id()
-        
+        session_id = data.get("session_id") or get_session_id()
+
         if session_id not in sessions:
-            return jsonify({
-                "success": False, 
-                "error": "Session invalide. Veuillez uploader les fichiers."
-            }), 400
-        
+            return jsonify({"success": False, "error": "Session invalide. Veuillez uploader les fichiers."}), 400
+
         session = sessions[session_id]
-        
-        if not session.get('ccag_path'):
-            return jsonify({
-                "success": False, 
-                "error": "CCAG manquant. Veuillez uploader le CCAG."
-            }), 400
-        
-        if not session.get('cctp_path'):
-            return jsonify({
-                "success": False, 
-                "error": "CCTP manquant. Veuillez uploader le CCTP."
-            }), 400
-        
-        if not Path(session['ccag_path']).exists():
-            return jsonify({
-                "success": False, 
-                "error": "CCAG introuvable. Veuillez le ré-uploader."
-            }), 400
-        
-        if not Path(session['cctp_path']).exists():
-            return jsonify({
-                "success": False, 
-                "error": "CCTP introuvable. Veuillez le ré-uploader."
-            }), 400
-        
+
+        if not session.get("ccag_path"):
+            return jsonify({"success": False, "error": "CCAG manquant. Veuillez uploader le CCAG."}), 400
+
+        if not session.get("ccap_path"):
+            return jsonify({"success": False, "error": "CCAP manquant. Veuillez uploader le CCAP."}), 400
+
+        if not Path(session["ccag_path"]).exists():
+            return jsonify({"success": False, "error": "CCAG introuvable. Veuillez le ré-uploader."}), 400
+
+        if not Path(session["ccap_path"]).exists():
+            return jsonify({"success": False, "error": "CCAP introuvable. Veuillez le ré-uploader."}), 400
+
         job_id = generate_job_id()
-        
+
         jobs[job_id] = {
             "status": "processing",
             "progress": 0,
             "step": "Initialisation...",
             "session_id": session_id,
-            "ccag_path": session['ccag_path'],
-            "cctp_path": session['cctp_path'],
-            "domaine": session.get('domaine', 'travaux'),
+            "ccag_path": session["ccag_path"],
+            "cctp_path": session.get("cctp_path"),  # optionnel
+            "ccap_path": session["ccap_path"],
+            "domaine": session.get("domaine", "travaux"),
             "created_at": datetime.now().isoformat(),
             "output_path": None,
             "error": None,
-            "remarques": None
+            "remarques": None,
         }
-        
+
         logger.info(f"Job créé: {job_id} pour session {session_id}")
-        
+
         import threading
+
         thread = threading.Thread(target=run_analysis, args=(job_id,))
         thread.daemon = True
         thread.start()
-        
-        return jsonify({
-            "success": True,
-            "job_id": job_id,
-            "status": jobs[job_id]["status"]
-        })
-        
+
+        return jsonify({"success": True, "job_id": job_id, "status": jobs[job_id]["status"]})
+
     except Exception as e:
         logger.error(f"Erreur lancement analyse: {e}")
         return jsonify({"success": False, "error": str(e)}), 500
 
 
 def run_analysis(job_id):
-    """Exécute l'analyse avec l'architecture multi-agents + RAG."""
+    """Exécute l'analyse du CCAP avec l'architecture multi-agents + RAG."""
     job = jobs[job_id]
 
     try:
+
         def progress_callback(progress, step):
             job["progress"] = progress
             job["step"] = step
@@ -316,7 +270,8 @@ def run_analysis(job_id):
 
         result = run_full_analysis(
             ccag_path=job["ccag_path"],
-            cctp_path=job["cctp_path"],
+            cctp_path=job.get("cctp_path"),  # peut être None
+            ccap_path=job["ccap_path"],
             domaine=job["domaine"],
             session_id=job["session_id"],
             progress_callback=progress_callback,
@@ -331,17 +286,17 @@ def run_analysis(job_id):
         job["niveau_risque"] = result.get("niveau_risque", "modéré")
         job["points_critiques"] = result.get("points_critiques", [])
 
-        # Annotation Word
+        # Annotation Word sur le CCAP
         job["progress"] = 92
-        job["step"] = "Insertion des commentaires dans le document Word..."
+        job["step"] = "Insertion des commentaires dans le CCAP..."
 
         from services.word_annotator import annotate_document
 
-        output_filename = f"CCTP_annote_{job_id[:8]}.docx"
+        output_filename = f"CCAP_annote_{job_id[:8]}.docx"
         output_path = OUTPUTS_DIR / output_filename
 
         annotation_result = annotate_document(
-            cctp_path=job["cctp_path"],
+            cctp_path=job["ccap_path"],  # on annote le CCAP
             remarques=job["remarques"],
             output_path=str(output_path),
         )
@@ -367,6 +322,7 @@ def run_analysis(job_id):
 
     except Exception as e:
         import traceback
+
         logger.error(f"[{job_id}] Erreur: {e}")
         traceback.print_exc()
         job["status"] = "error"
@@ -378,70 +334,63 @@ def run_analysis(job_id):
 # ROUTES - STATUT ET TÉLÉCHARGEMENT
 # =============================================================================
 
-@app.route('/status/<job_id>')
+
+@app.route("/status/<job_id>")
 def get_status(job_id):
-    """Retourne le statut d'un job d'analyse."""
     if job_id not in jobs:
         return jsonify({"success": False, "error": "Job introuvable"}), 404
-    
+
     job = jobs[job_id]
-    
+
     response = {
         "success": True,
         "job_id": job_id,
         "status": job["status"],
         "progress": job["progress"],
-        "step": job["step"]
+        "step": job["step"],
     }
-    
+
     if job["status"] == "completed":
-        response["remarques_count"] = len(job.get("remarques", []))
         remarques = job.get("remarques", [])
+        response["remarques_count"] = len(remarques)
         response["stats"] = {
             "total": len(remarques),
             "haute": len([r for r in remarques if r.get("gravite") == "haute"]),
             "moyenne": len([r for r in remarques if r.get("gravite") == "moyenne"]),
-            "basse": len([r for r in remarques if r.get("gravite") == "basse"])
+            "basse": len([r for r in remarques if r.get("gravite") == "basse"]),
         }
         response["niveau_risque"] = job.get("niveau_risque", "modéré")
         response["synthese"] = job.get("synthese", "")
         response["points_critiques"] = job.get("points_critiques", [])
-    
+
     if job["status"] == "error":
         response["error"] = job["error"]
-    
+
     return jsonify(response)
 
 
-@app.route('/download/<job_id>')
+@app.route("/download/<job_id>")
 def download(job_id):
-    """Télécharge le CCTP annoté."""
+    """Télécharge le CCAP annoté."""
     if job_id not in jobs:
         return jsonify({"success": False, "error": "Job introuvable"}), 404
-    
+
     job = jobs[job_id]
-    
+
     if job["status"] != "completed":
-        return jsonify({
-            "success": False, 
-            "error": "Analyse non terminée",
-            "status": job["status"]
-        }), 400
-    
+        return jsonify({"success": False, "error": "Analyse non terminée", "status": job["status"]}), 400
+
     if not job.get("output_path") or not Path(job["output_path"]).exists():
-        return jsonify({
-            "success": False, 
-            "error": "Fichier de sortie introuvable"
-        }), 404
-    
-    original_filename = Path(job["cctp_path"]).stem
+        return jsonify({"success": False, "error": "Fichier de sortie introuvable"}), 404
+
+    original_filename = Path(job["ccap_path"]).stem
     download_filename = f"{original_filename}_ANALYSE.docx"
-    
+
     return send_file(
         job["output_path"],
         as_attachment=True,
         download_name=download_filename,
-        mimetype='application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+        mimetype="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
     )
 
 
@@ -449,38 +398,35 @@ def download(job_id):
 # ROUTES - UTILITAIRES
 # =============================================================================
 
-@app.route('/session/info')
+
+@app.route("/session/info")
 def session_info():
-    """Retourne les infos de la session courante."""
     session_id = get_session_id()
-    
+
     if session_id not in sessions:
-        return jsonify({
-            "success": True,
-            "session_id": session_id,
-            "has_ccag": False,
-            "has_cctp": False
-        })
-    
+        return jsonify({"success": True, "session_id": session_id, "has_ccag": False, "has_cctp": False, "has_ccap": False})
+
     session = sessions[session_id]
-    
+
     return jsonify({
         "success": True,
         "session_id": session_id,
         "has_ccag": bool(session.get("ccag_path")),
         "has_cctp": bool(session.get("cctp_path")),
+        "has_ccap": bool(session.get("ccap_path")),
         "ccag_filename": session.get("ccag_filename"),
         "cctp_filename": session.get("cctp_filename"),
-        "domaine": session.get("domaine")
+        "ccap_filename": session.get("ccap_filename"),
+        "domaine": session.get("domaine"),
     })
 
 
-@app.route('/cleanup', methods=['POST'])
+@app.route("/cleanup", methods=["POST"])
 def cleanup():
-    """Nettoie les fichiers anciens."""
     try:
         cleanup_old_files(UPLOADS_CCAG_DIR)
         cleanup_old_files(UPLOADS_CCTP_DIR)
+        cleanup_old_files(UPLOADS_CCAP_DIR)
         cleanup_old_files(OUTPUTS_DIR)
         return jsonify({"success": True, "message": "Nettoyage effectué"})
     except Exception as e:
@@ -491,78 +437,56 @@ def cleanup():
 # GESTION DES ERREURS
 # =============================================================================
 
+
 @app.errorhandler(413)
 def request_entity_too_large(error):
-    return jsonify({
-        "success": False,
-        "error": f"Fichier trop volumineux. Maximum: {MAX_FILE_SIZE_MB} MB"
-    }), 413
+    return jsonify({"success": False, "error": f"Fichier trop volumineux. Maximum: {MAX_FILE_SIZE_MB} MB"}), 413
 
 
 @app.errorhandler(404)
 def not_found(error):
-    return jsonify({
-        "success": False,
-        "error": "Ressource non trouvée"
-    }), 404
+    return jsonify({"success": False, "error": "Ressource non trouvée"}), 404
 
 
 @app.errorhandler(500)
 def internal_error(error):
     logger.error(f"Erreur 500: {error}")
-    return jsonify({
-        "success": False,
-        "error": "Erreur interne du serveur"
-    }), 500
+    return jsonify({"success": False, "error": "Erreur interne du serveur"}), 500
 
 
 @app.errorhandler(502)
 def bad_gateway(error):
-    logger.error(f"Erreur 502: {error}")
-    return jsonify({
-        "success": False,
-        "error": "Erreur de passerelle"
-    }), 502
+    return jsonify({"success": False, "error": "Erreur de passerelle"}), 502
 
 
 @app.errorhandler(503)
 def service_unavailable(error):
-    logger.error(f"Erreur 503: {error}")
-    return jsonify({
-        "success": False,
-        "error": "Service temporairement indisponible"
-    }), 503
+    return jsonify({"success": False, "error": "Service temporairement indisponible"}), 503
 
 
 @app.errorhandler(504)
 def gateway_timeout(error):
-    logger.error(f"Erreur 504: {error}")
-    return jsonify({
-        "success": False,
-        "error": "Délai d'attente dépassé"
-    }), 504
+    return jsonify({"success": False, "error": "Délai d'attente dépassé"}), 504
 
 
 @app.errorhandler(Exception)
 def handle_exception(error):
     logger.error(f"Erreur non gérée: {error}")
-    return jsonify({
-        "success": False,
-        "error": str(error)
-    }), 500
+    return jsonify({"success": False, "error": str(error)}), 500
 
 
 # =============================================================================
 # POINT D'ENTRÉE
 # =============================================================================
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     cleanup_old_files(UPLOADS_CCAG_DIR, max_age_hours=24)
     cleanup_old_files(UPLOADS_CCTP_DIR, max_age_hours=24)
+    cleanup_old_files(UPLOADS_CCAP_DIR, max_age_hours=24)
     cleanup_old_files(OUTPUTS_DIR, max_age_hours=24)
-    
-    port = int(os.environ.get('PORT', 5001))
-    debug = os.environ.get('FLASK_ENV') == 'development'
-    
-    logger.info(f"Démarrage de CCTP Analyzer sur le port {port}")
-    app.run(host='0.0.0.0', port=port, debug=debug)
+
+    port = int(os.environ.get("PORT", 5001))
+    debug = os.environ.get("FLASK_ENV") == "development"
+
+    logger.info(f"Démarrage de CCAP Analyzer sur le port {port}")
+    app.run(host="0.0.0.0", port=port, debug=debug)

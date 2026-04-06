@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CCTP Analyzer | Chardonnet Conseil</title>
+    <title>CCAP Analyzer | Lexigency</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
@@ -40,8 +40,7 @@
                     </svg>
                 </div>
                 <div class="logo-text">
-                    <span class="logo-name">CHARDONNET</span>
-                    <span class="logo-subtitle">CONSEIL</span>
+                    <span class="logo-name">LEXIGENCY</span>
                 </div>
             </div>
             <nav class="nav">
@@ -62,20 +61,20 @@
             </div>
             <h1 class="hero-title">
                 <span class="title-line">Analysez vos</span>
-                <span class="title-gradient">CCTP</span>
+                <span class="title-gradient">CCAP</span>
                 <span class="title-line">en quelques clics</span>
             </h1>
             <p class="hero-description">
-                Expert en marchés publics depuis 1998.<br>
-                Analyse juridique automatisée, commentaires professionnels, conformité garantie.
+                Audit de conformité automatisé de vos CCAP.<br>
+                Commentaires professionnels, conformité garantie.
             </p>
         </section>
 
         <!-- Upload Section -->
         <section class="upload-section" id="upload-section">
             <div class="upload-container">
-                <!-- CCAG Card -->
-                <div class="upload-card ccag-card" id="ccag-card">
+                <!-- LEFT CARD : Documents de référence (CCAG + CCTP) -->
+                <div class="upload-card ccag-card" id="ref-card">
                     <div class="card-header">
                         <div class="card-icon ccag-icon">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -87,11 +86,11 @@
                             </svg>
                         </div>
                         <div class="card-title-group">
-                            <h3 class="card-title">CCAG</h3>
-                            <p class="card-subtitle">Clauses Administratives</p>
+                            <h3 class="card-title">Documents de référence</h3>
+                            <p class="card-subtitle">CCAG + CCTP</p>
                         </div>
                     </div>
-                    
+
                     <div class="domain-selector">
                         <label class="selector-label">Domaine du marché</label>
                         <div class="select-wrapper">
@@ -108,6 +107,7 @@
                         </div>
                     </div>
 
+                    <!-- CCAG Upload -->
                     <div class="dropzone" id="ccag-dropzone">
                         <input type="file" id="ccag-input" accept=".docx" hidden>
                         <div class="dropzone-content">
@@ -132,10 +132,36 @@
                             <button class="btn-change" onclick="resetFile('ccag')">Changer</button>
                         </div>
                     </div>
+
+                    <!-- CCTP Upload -->
+                    <div class="dropzone" id="cctp-dropzone" style="margin-top: 12px;">
+                        <input type="file" id="cctp-input" accept=".docx" hidden>
+                        <div class="dropzone-content">
+                            <div class="dropzone-icon">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                    <polyline points="17 8 12 3 7 8"/>
+                                    <line x1="12" y1="3" x2="12" y2="15"/>
+                                </svg>
+                            </div>
+                            <p class="dropzone-text">Glissez votre fichier CCTP</p>
+                            <p class="dropzone-hint">ou cliquez pour sélectionner (optionnel)</p>
+                            <span class="dropzone-format">.docx uniquement</span>
+                        </div>
+                        <div class="dropzone-success" id="cctp-success">
+                            <div class="success-icon">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="20 6 9 17 4 12"/>
+                                </svg>
+                            </div>
+                            <p class="success-filename" id="cctp-filename"></p>
+                            <button class="btn-change" onclick="resetFile('cctp')">Changer</button>
+                        </div>
+                    </div>
                 </div>
 
-                <!-- CCTP Card -->
-                <div class="upload-card cctp-card" id="cctp-card">
+                <!-- RIGHT CARD : CCAP (document à analyser) -->
+                <div class="upload-card cctp-card" id="ccap-card">
                     <div class="card-header">
                         <div class="card-icon cctp-icon">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -146,7 +172,7 @@
                             </svg>
                         </div>
                         <div class="card-title-group">
-                            <h3 class="card-title">CCTP</h3>
+                            <h3 class="card-title">CCAP</h3>
                             <p class="card-subtitle">Document à analyser</p>
                         </div>
                     </div>
@@ -162,8 +188,8 @@
                         <p>Le Code de la Commande Publique est automatiquement inclus dans l'analyse.</p>
                     </div>
 
-                    <div class="dropzone" id="cctp-dropzone">
-                        <input type="file" id="cctp-input" accept=".docx" hidden>
+                    <div class="dropzone" id="ccap-dropzone">
+                        <input type="file" id="ccap-input" accept=".docx" hidden>
                         <div class="dropzone-content">
                             <div class="dropzone-icon">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
@@ -172,18 +198,18 @@
                                     <line x1="12" y1="3" x2="12" y2="15"/>
                                 </svg>
                             </div>
-                            <p class="dropzone-text">Glissez votre fichier CCTP</p>
+                            <p class="dropzone-text">Glissez votre fichier CCAP</p>
                             <p class="dropzone-hint">ou cliquez pour sélectionner</p>
                             <span class="dropzone-format">.docx uniquement</span>
                         </div>
-                        <div class="dropzone-success" id="cctp-success">
+                        <div class="dropzone-success" id="ccap-success">
                             <div class="success-icon">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <polyline points="20 6 9 17 4 12"/>
                                 </svg>
                             </div>
-                            <p class="success-filename" id="cctp-filename"></p>
-                            <button class="btn-change" onclick="resetFile('cctp')">Changer</button>
+                            <p class="success-filename" id="ccap-filename"></p>
+                            <button class="btn-change" onclick="resetFile('ccap')">Changer</button>
                         </div>
                     </div>
                 </div>
@@ -248,7 +274,7 @@
                     </div>
                     <div>
                         <h3 class="results-title">Analyse terminée</h3>
-                        <p class="results-subtitle" id="results-subtitle">Votre document est prêt</p>
+                        <p class="results-subtitle" id="results-subtitle">Votre CCAP annoté est prêt</p>
                     </div>
                 </div>
 
@@ -296,7 +322,7 @@
                             <line x1="12" y1="15" x2="12" y2="3"/>
                         </svg>
                     </span>
-                    <span>Télécharger le CCTP annoté</span>
+                    <span>Télécharger le CCAP annoté</span>
                 </button>
 
                 <!-- New Analysis -->
@@ -328,7 +354,7 @@
     <!-- Footer -->
     <footer class="footer">
         <div class="footer-content">
-            <p>© 2026 Chardonnet Conseil — Expert en Marchés Publics</p>
+            <p>© 2026 Lexigency — Audit de marchés publics</p>
             <p class="footer-powered">Analyse automatisée de vos documents contractuels</p>
         </div>
     </footer>

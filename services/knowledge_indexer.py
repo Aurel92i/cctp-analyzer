@@ -227,11 +227,12 @@ def index_ccag(filepath: str, domaine: str, session_id: str):
 
 def cleanup_session_collections(session_id: str):
     """Supprime les collections associées à une session."""
-    try:
-        client.delete_collection(f"ccag_{session_id}")
-        logger.info(f"Collection ccag_{session_id} supprimée")
-    except Exception:
-        pass
+    for prefix in ("ccag_", "cctp_ref_"):
+        try:
+            client.delete_collection(f"{prefix}{session_id}")
+            logger.info(f"Collection {prefix}{session_id} supprimée")
+        except Exception:
+            pass
 
 
 def chunk_text_with_overlap(

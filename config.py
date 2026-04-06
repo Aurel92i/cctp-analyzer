@@ -18,10 +18,11 @@ DATA_DIR = BASE_DIR / "data"
 UPLOADS_DIR = BASE_DIR / "uploads"
 UPLOADS_CCAG_DIR = UPLOADS_DIR / "ccag"
 UPLOADS_CCTP_DIR = UPLOADS_DIR / "cctp"
+UPLOADS_CCAP_DIR = UPLOADS_DIR / "ccap"
 OUTPUTS_DIR = BASE_DIR / "outputs"
 
 # Créer les dossiers s'ils n'existent pas
-for directory in [DATA_DIR, UPLOADS_CCAG_DIR, UPLOADS_CCTP_DIR, OUTPUTS_DIR]:
+for directory in [DATA_DIR, UPLOADS_CCAG_DIR, UPLOADS_CCTP_DIR, UPLOADS_CCAP_DIR, OUTPUTS_DIR]:
     directory.mkdir(parents=True, exist_ok=True)
 
 # =============================================================================
