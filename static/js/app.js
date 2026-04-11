@@ -120,8 +120,9 @@ function setupDropzone(dropzone, input, type) {
 }
 
 function handleFile(file, type) {
-    if (!file.name.toLowerCase().endsWith('.docx')) {
-        showNotification('Format invalide. Utilisez un fichier .docx', 'error');
+    const lowerName = file.name.toLowerCase();
+    if (!lowerName.endsWith('.docx') && !lowerName.endsWith('.pdf')) {
+        showNotification('Format invalide. Utilisez un fichier .docx ou .pdf', 'error');
         return;
     }
 

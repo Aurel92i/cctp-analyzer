@@ -65,9 +65,10 @@ MAX_CHARS_PER_SECTION = 30000
 # UPLOAD
 # =============================================================================
 MAX_FILE_SIZE_MB = 20
-ALLOWED_EXTENSIONS = {"docx"}
+ALLOWED_EXTENSIONS = {"docx", "pdf"}
 ALLOWED_MIMETYPES = {
-    "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "application/pdf",
 }
 
 # =============================================================================

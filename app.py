@@ -102,7 +102,7 @@ def _upload_file(upload_dir, session_key_prefix):
         return jsonify({"success": False, "error": "Nom de fichier vide"}), 400
 
     if not allowed_file(file.filename):
-        return jsonify({"success": False, "error": "Extension non autorisée. Utilisez .docx"}), 400
+        return jsonify({"success": False, "error": "Extension non autorisée. Utilisez .docx ou .pdf"}), 400
 
     session_id = get_session_id()
     filename = secure_filename(file.filename)
@@ -113,12 +113,30 @@ def _upload_file(upload_dir, session_key_prefix):
     file.save(filepath)
     logger.info(f"{session_key_prefix.upper()} uploadé: {filepath}")
 
+    # Si c'est un PDF, conversion automatique en DOCX.
+    # Le reste du pipeline (orchestrator, word_annotator) reçoit toujours un .docx.
+    if filepath.suffix.lower() == ".pdf":
+        try:
+            from services.document_extractor import convert_pdf_to_docx
+            logger.info(f"Conversion PDF → DOCX pour {session_key_prefix.upper()}: {filepath.name}")
+            docx_path = convert_pdf_to_docx(filepath)
+            logger.info(f"{session_key_prefix.upper()} converti en DOCX: {docx_path}")
+            effective_path = docx_path
+        except Exception as e:
+            logger.error(f"Erreur conversion PDF → DOCX ({session_key_prefix}): {e}")
+            return jsonify({
+                "success": False,
+                "error": f"Erreur lors de la conversion du PDF en DOCX: {e}",
+            }), 500
+    else:
+        effective_path = filepath
+
     if session_id not in sessions:
         sessions[session_id] = {}
 
     sessions[session_id].update({
         f"{session_key_prefix}_filename": filename,
-        f"{session_key_prefix}_path": str(filepath),
+        f"{session_key_prefix}_path": str(effective_path),
         f"{session_key_prefix}_uploaded_at": datetime.now().isoformat(),
     })
 

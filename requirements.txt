@@ -10,6 +10,10 @@ werkzeug>=3.0
 python-docx>=1.1
 lxml>=5.0
 
+# Traitement PDF (conversion vers DOCX + extraction texte)
+PyMuPDF>=1.24.0
+pdf2docx>=0.5.8
+
 # Requêtes HTTP (OpenRouter API)
 requests>=2.31
 
