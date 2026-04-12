@@ -21,6 +21,7 @@ from services.knowledge_indexer import (
     index_code_commande_publique,
     index_ccag,
     index_cctp,
+    index_knowledge_base,
     cleanup_session_collections,
 )
 from services.knowledge_retriever import retrieve_relevant_context
@@ -136,6 +137,9 @@ def run_full_analysis(
         update_progress(5, "Indexation du Code de la Commande Publique...")
         index_code_commande_publique(str(CODE_COMMANDE_PUBLIQUE_FILE))
 
+        update_progress(8, "Indexation de la base de connaissances...")
+        index_knowledge_base()
+
         update_progress(10, f"Indexation du CCAG {domaine_label}...")
         index_ccag(str(ccag_path), domaine, session_id)
 
@@ -200,6 +204,7 @@ def run_full_analysis(
                 section_titre=section["titre"],
                 code_ccp_extracts=context["code_ccp_extracts"],
                 ccag_extracts=context["ccag_extracts"],
+                knowledge_extracts=context.get("knowledge_extracts", ""),
                 domaine=domaine,
                 domaine_label=domaine_label,
             )
@@ -243,6 +248,7 @@ def run_full_analysis(
                     section_titre=section["titre"],
                     code_ccp_extracts=context["code_ccp_extracts"],
                     ccag_extracts=context["ccag_extracts"],
+                    knowledge_extracts=context.get("knowledge_extracts", ""),
                     domaine=domaine,
                     domaine_label=domaine_label,
                     type_document="CCTP",

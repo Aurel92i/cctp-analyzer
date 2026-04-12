@@ -244,6 +244,92 @@ def index_cctp(filepath: str, session_id: str):
     return collection
 
 
+def index_knowledge_base(force_reindex=False):
+    """
+    Indexe les fichiers de la base de connaissances (checklist, jurisprudence, fiches DAJ)
+    dans une collection ChromaDB persistante appelée "knowledge_base".
+
+    Cette collection est permanente (comme code_ccp), pas liée à une session.
+    """
+    collection_name = "knowledge_base"
+
+    try:
+        collection = client.get_collection(
+            collection_name, embedding_function=get_embedding_function()
+        )
+        if collection.count() > 0 and not force_reindex:
+            logger.info(
+                f"Collection '{collection_name}' déjà indexée "
+                f"({collection.count()} éléments)"
+            )
+            return collection
+        client.delete_collection(collection_name)
+    except Exception:
+        pass
+
+    collection = client.create_collection(
+        name=collection_name,
+        metadata={"description": "Base de connaissances Lexigency - Checklist, jurisprudence, fiches DAJ"},
+        embedding_function=get_embedding_function(),
+    )
+
+    knowledge_dir = Path(__file__).parent.parent / "data" / "knowledge"
+
+    documents = []
+    metadatas = []
+    ids = []
+
+    # Indexer les fichiers markdown
+    for filepath in knowledge_dir.glob("*.md"):
+        text = filepath.read_text(encoding="utf-8")
+        sections = split_by_headings(text)
+        for i, section in enumerate(sections):
+            if len(section.strip()) > 50:
+                documents.append(section)
+                metadatas.append({
+                    "source": filepath.stem,
+                    "type": "knowledge",
+                    "index": i,
+                })
+                ids.append(f"kb_{filepath.stem}_{i}")
+
+    # Indexer la jurisprudence (séparateur ---)
+    juris_path = knowledge_dir / "jurisprudence_ccap.txt"
+    if juris_path.exists():
+        text = juris_path.read_text(encoding="utf-8")
+        arrets = text.split("---")
+        for i, arret in enumerate(arrets):
+            if len(arret.strip()) > 50:
+                documents.append(arret.strip())
+                metadatas.append({
+                    "source": "jurisprudence",
+                    "type": "arret",
+                    "index": i,
+                })
+                ids.append(f"kb_juris_{i}")
+
+    if documents:
+        batch_size = 50
+        for i in range(0, len(documents), batch_size):
+            collection.add(
+                documents=documents[i : i + batch_size],
+                metadatas=metadatas[i : i + batch_size],
+                ids=ids[i : i + batch_size],
+            )
+
+    logger.info(
+        f"Base de connaissances indexée : {collection.count()} éléments "
+        f"dans '{collection_name}'"
+    )
+    return collection
+
+
+def split_by_headings(text):
+    """Découpe un texte markdown en sections par titres ## ou ###."""
+    sections = re.split(r"\n(?=#{2,3}\s)", text)
+    return [s.strip() for s in sections if s.strip()]
+
+
 def cleanup_session_collections(session_id: str):
     """Supprime les collections associées à une session."""
     for prefix in ("ccag_", "cctp_"):

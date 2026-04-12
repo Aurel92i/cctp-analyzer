@@ -10,10 +10,44 @@ le cœur du raisonnement juridique.
 """
 
 import logging
+from pathlib import Path
 
 from services.llm_client import call_llm
 
 logger = logging.getLogger(__name__)
+
+CHECKLIST_PATH = Path(__file__).parent.parent / "data" / "knowledge" / "checklist_audit.md"
+
+
+def load_checklist_summary():
+    """Charge un résumé de la checklist d'audit pour le system prompt."""
+    try:
+        text = CHECKLIST_PATH.read_text(encoding="utf-8")
+        lines = text.split("\n")
+        summary_lines = []
+        capture = False
+        for line in lines:
+            if any(
+                keyword in line.lower()
+                for keyword in [
+                    "checklist",
+                    "erreurs fréquentes",
+                    "dérogations",
+                    "ordre public",
+                    "non dérogeable",
+                ]
+            ):
+                capture = True
+            if capture:
+                summary_lines.append(line)
+            if len(summary_lines) > 200:
+                break
+        return "\n".join(summary_lines) if summary_lines else ""
+    except Exception:
+        return ""
+
+
+CHECKLIST_AUDIT = load_checklist_summary()
 
 SYSTEM_PROMPT = """Tu es un consultant senior en marchés publics français avec 20 ans d'expérience en audit de CCAP. Tu travailles comme le feraient Christelle MIRGAINE ou Anne-Caroline LEGLEYE : avec rigueur, pragmatisme et une connaissance profonde du CCAG et du Code de la Commande Publique.
 
@@ -77,7 +111,10 @@ STYLE DE RÉDACTION :
 - Quand tu identifies une dérogation, précise si elle est valable ou risquée
 - Utilise des formulations comme : "Cette clause déroge à l'article X du CCAG qui prévoit Y. La dérogation est [valable/risquée] car Z."
 
-Tu retournes UNIQUEMENT du JSON valide."""
+CHECKLIST DE RÉFÉRENCE (extraite des fiches DAJ et de la jurisprudence) :
+{checklist}
+
+Tu retournes UNIQUEMENT du JSON valide.""".format(checklist=CHECKLIST_AUDIT[:3000])
 
 USER_PROMPT_TEMPLATE = """## CONTEXTE
 - Domaine : {domaine} ({domaine_label})
@@ -89,6 +126,9 @@ USER_PROMPT_TEMPLATE = """## CONTEXTE
 
 ## ARTICLES DU CCAG-{domaine_label} (pertinents pour cette clause)
 {ccag_extracts}
+
+## ÉLÉMENTS DE DOCTRINE, JURISPRUDENCE ET BONNES PRATIQUES
+{knowledge_extracts}
 
 ## TEXTE COMPLET DE LA CLAUSE À AUDITER
 {clause_text}
@@ -134,11 +174,12 @@ def audit_clause(
     domaine: str,
     domaine_label: str,
     type_document: str = "CCAP",
+    knowledge_extracts: str = "",
 ) -> dict:
     """
     Audite une clause individuelle d'un document (CCAP ou CCTP).
 
-    Les références sont : CCAG + Code CCP.
+    Les références sont : CCAG + Code CCP + base de connaissances.
 
     Returns:
         {
@@ -156,6 +197,7 @@ def audit_clause(
         section_titre=section_titre,
         code_ccp_extracts=code_ccp_extracts or "[Aucun article CCP pertinent trouvé]",
         ccag_extracts=ccag_extracts or "[Aucun article CCAG pertinent trouvé]",
+        knowledge_extracts=knowledge_extracts or "[Pas de doctrine/jurisprudence disponible]",
         clause_text=clause_text,
     )
 

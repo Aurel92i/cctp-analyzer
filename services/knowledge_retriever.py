@@ -51,6 +51,7 @@ def retrieve_relevant_context(
         "code_ccp_extracts": "",
         "ccag_extracts": "",
         "cctp_extracts": "",
+        "knowledge_extracts": "",
         "sources": [],
     }
 
@@ -165,5 +166,44 @@ def retrieve_relevant_context(
     except Exception as e:
         logger.debug(f"CCTP non indexé pour cette session: {e}")
         result["cctp_extracts"] = ""
+
+    # 4. Recherche dans la base de connaissances (checklist, jurisprudence, fiches DAJ)
+    try:
+        kb_collection = client.get_collection(
+            "knowledge_base", embedding_function=get_embedding_function()
+        )
+        kb_results = kb_collection.query(
+            query_texts=[clause_text],
+            n_results=min(5, kb_collection.count()),
+        )
+
+        if (
+            kb_results
+            and kb_results["documents"]
+            and kb_results["documents"][0]
+        ):
+            extracts = []
+            for doc, meta in zip(
+                kb_results["documents"][0],
+                kb_results["metadatas"][0],
+            ):
+                source = meta.get("source", "")
+                if meta.get("type") == "arret":
+                    extracts.append(f"[JURISPRUDENCE]\n{doc}")
+                else:
+                    extracts.append(f"[{source.upper()}]\n{doc}")
+                result["sources"].append(
+                    {
+                        "source": f"Knowledge - {source}",
+                        "numero": f"Élément {meta.get('index', 'N/A')}",
+                        "score": 0,
+                    }
+                )
+
+            result["knowledge_extracts"] = "\n\n---\n\n".join(extracts)
+
+    except Exception as e:
+        logger.warning(f"Erreur recherche knowledge base: {e}")
+        result["knowledge_extracts"] = ""
 
     return result

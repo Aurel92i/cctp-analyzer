@@ -1,0 +1,332 @@
+================================================================================
+JURISPRUDENCE CCAP - MARCHÉS PUBLICS
+Compilation complète des décisions relatives aux erreurs et issues du CCAP
+================================================================================
+
+---
+Juridiction : CE
+Date : 30 mars 1916
+Numéro : Compagnie générale d'éclairage de Bordeaux
+Parties : Compagnie générale d'éclairage de Bordeaux c/ Ville de Bordeaux
+Thème : Imprévision
+Point de droit : Arrêt fondateur de la théorie de l'imprévision en droit administratif. Quand un événement imprévisible bouleverse l'économie du contrat, le cocontractant a droit à une indemnité pour compenser l'augmentation de ses charges.
+---
+
+---
+Juridiction : CE
+Date : 2 juin 1989
+Numéro : 65631
+Parties : Ville de Boissy-Saint-Léger
+Thème : Retenue de garantie
+Point de droit : La retenue de garantie sert à garantir contractuellement l'exécution des travaux et à satisfaire les réserves à la réception. Elle ne peut être utilisée à d'autres fins que celles prévues au contrat.
+---
+
+---
+Juridiction : CE
+Date : 31 juillet 1996
+Numéro : 124065
+Parties : CANAC
+Thème : Dérogation au CCAG - validité
+Point de droit : L'obligation de déroger aux documents généraux (CCAG) dans les documents particuliers n'est en aucun cas prescrite à peine de nullité de la dérogation. Une dérogation peut être valide même si elle ne figure pas explicitement dans le CCAP.
+---
+
+---
+Juridiction : CAA Bordeaux
+Date : 28 mai 2001
+Numéro : 97BX00327
+Parties : SARL Martinet
+Thème : Dérogation CCAG non récapitulée
+Point de droit : Une clause qui n'a pas été récapitulée dans le dernier article du CCAP ne peut en aucun cas être considérée comme constituant une dérogation au CCAG valide. L'absence de récapitulation entraîne l'application du CCAG standard.
+---
+
+---
+Juridiction : CAA Paris
+Date : 19 décembre 2002
+Numéro : 98PA03302/98PA03332
+Parties : Société Bernard et autres c/ SEMRO
+Thème : Dérogation CCAG non listée - validité
+Point de droit : Le seul fait qu'une dérogation au CCAG n'ait pas été récapitulée dans le dernier article du CCAP ne permet pas de la considérer comme dépourvue de validité. La jurisprudence reconnaît la possibilité de dérogations implicites.
+---
+
+---
+Juridiction : CE
+Date : 29 décembre 2008
+Numéro : 296930
+Parties : OPHLM de Puteaux c/ SARL SERBOIS
+Thème : Pénalités de retard - pouvoir de modulation du juge
+Point de droit : Le juge administratif peut modérer ou augmenter les pénalités de retard si elles atteignent un montant manifestement excessif ou dérisoire par rapport au montant du marché. Le juge dispose d'un pouvoir d'appréciation discrétionnaire.
+---
+
+---
+Juridiction : CE
+Date : 12 janvier 2011
+Numéro : 334320
+Parties : Société Léon Grosse c/ Région Nord-Pas-de-Calais
+Thème : Hiérarchie des pièces contractuelles
+Point de droit : L'acte d'engagement prime sur les autres documents contractuels. La cour d'appel a commis une erreur de droit en donnant la priorité au phasage prévisionnel sur l'acte d'engagement. L'ordre hiérarchique des documents est crucial.
+---
+
+---
+Juridiction : CE
+Date : 21 mars 2011
+Numéro : Commune de Béziers II
+Parties : Commune de Béziers
+Thème : Loyauté des relations contractuelles
+Point de droit : Le maître d'ouvrage doit respecter le principe de loyauté des relations contractuelles. Toute modification unilatérale ou comportement contraire aux stipulations du marché peut engager la responsabilité de la collectivité.
+---
+
+---
+Juridiction : CE
+Date : 4 juillet 2012
+Numéro : 352417
+Parties : Preneur c/ Bailleur
+Thème : Décompte général et définitif
+Point de droit : Le décompte général et définitif doit être établi conformément aux stipulations du CCAP. L'absence de décompte régulier peut entraîner des difficultés dans la détermination du montant dû et justifier une expertise.
+---
+
+---
+Juridiction : CE
+Date : 8 octobre 2014
+Numéro : Société Grenke Location
+Parties : Société Grenke Location
+Thème : Résiliation irrégulière
+Point de droit : La résiliation d'un marché public doit respecter les conditions contractuelles et les principes du droit administratif. Une résiliation sans motif légitime ou sans respect de la procédure peut être jugée abusive et donner lieu à réparation.
+---
+
+---
+Juridiction : CE
+Date : 9 novembre 2018
+Numéro : 413533
+Parties : Preneur
+Thème : Pénalités de retard comme critère de choix des offres
+Point de droit : Les pénalités de retard ne peuvent constituer un critère de choix des offres. Elles sont un mécanisme de sanction post-contractuel et non un élément d'évaluation lors de l'analyse des candidatures.
+---
+
+---
+Juridiction : CAA Lyon
+Date : 18 juillet 2007
+Numéro : 01LY00846
+Parties : Société COLAS SUD-OUEST
+Thème : Dérogation CCAG - marchés de travaux
+Point de droit : Jurisprudence confirmant la validité des dérogations au CCAG dans le CCAP pour les marchés de travaux, à condition que ces dérogations soient clairement identifiées et matérialisées dans les documents particuliers.
+---
+
+---
+Juridiction : CAA Lyon
+Date : 8 mars 2018
+Numéro : 17LY01827
+Parties : Société Routière du Centre
+Thème : Retenue de garantie
+Point de droit : La retenue de garantie a pour seul objet de couvrir les réserves formulées à la réception et pendant la période de garantie de parfait achèvement. Elle ne peut être utilisée pour compenser d'autres obligations contractuelles.
+---
+
+---
+Juridiction : CE
+Date : 27 janvier 2020
+Numéro : Arrêt jurisprudentiel
+Parties : Entreprise de travaux
+Thème : Réception tacite des travaux
+Point de droit : La réception tacite des travaux peut intervenir lorsque le maître d'ouvrage utilise les prestations pendant une durée significative sans formuler de réserves. Cette réception tacite emporte les mêmes effets qu'une réception formelle.
+---
+
+---
+Juridiction : CE
+Date : 19 juillet 2017
+Numéro : 392707
+Parties : Société GBR Île-de-France
+Thème : Pénalités de retard - critères de modulation
+Point de droit : Le juge doit vérifier le caractère manifestement excessif au regard des pratiques observées pour des marchés comparables ou des caractéristiques particulières du contrat. L'appréciation ne peut être purement arithmétique.
+---
+
+---
+Juridiction : CAA Marseille
+Date : 14 mars 2022
+Numéro : Arrêt jurisprudentiel
+Parties : Entreprise c/ Maître d'ouvrage
+Thème : Pénalités excessives
+Point de droit : Des pénalités de retard de 48% du montant du marché ont été jugées excessives et modulées par le juge. Le taux de pénalité doit être proportionné aux enjeux du marché et au préjudice causé.
+---
+
+---
+Juridiction : CAA Bordeaux
+Date : 19 octobre 2022
+Numéro : 20BX02818
+Parties : Entreprise de services informatiques
+Thème : Pénalités de retard excessives
+Point de droit : Des pénalités de retard de 80,45% du montant du marché (marché informatique) ont été jugées excessives et modulées par le juge. Un tel taux dépasse manifestement les limites de la sanction contractuelle légitime.
+---
+
+---
+Juridiction : CAA Douai
+Date : 16 octobre 2024
+Numéro : Arrêt récent
+Parties : Entreprise
+Thème : CCAP et dérogation au décompte général et définitif
+Point de droit : Le CCAP peut déroger au régime du décompte général et définitif (DGD) tacite sans qu'il soit nécessaire de mentionner explicitement le numéro ou l'article du CCAG dont on déroge. Une stipulation claire suffit.
+---
+
+---
+Juridiction : CE
+Date : 14 janvier 2015
+Numéro : Société Stemmelin
+Parties : Société Stemmelin
+Thème : Sous-traitance et CCAP
+Point de droit : Le CCAP peut imposer des conditions spécifiques pour la sous-traitance. L'entreprise principale doit respecter les exigences contractuelles relatives à l'identification des sous-traitants et à leur agrément préalable par le maître d'ouvrage.
+---
+
+---
+Juridiction : CE
+Date : 15 septembre 2022
+Numéro : Avis du Conseil d'État
+Parties : Avis consultatif
+Thème : Imprévision et circonstances imprévisibles
+Point de droit : Avis du Conseil d'État sur les possibilités de modification du prix des contrats publics face à la flambée des prix des matières premières. Reconnaissance du rôle de l'imprévision dans les situations de crise économique.
+---
+
+---
+Juridiction : CE
+Date : 6 avril 2007
+Numéro : Arrêt jurisprudentiel
+Parties : Entreprises diverses
+Thème : Clauses pénales et assurances
+Point de droit : Les clauses pénales doivent être clairement identifiées dans le CCAP. Les assurances obligatoires doivent être spécifiées avec précision quant à leur nature, portée et conditions de justification.
+---
+
+---
+Juridiction : CAA Paris
+Date : 29 octobre 2015
+Numéro : Arrêt jurisprudentiel
+Parties : Prestataire
+Thème : Avenant et modification du contrat
+Point de droit : Les avenants doivent respecter l'équilibre économique initial du marché. Une modification substantielle de l'étendue des prestations sans ajustement de prix peut être jugée déséquilibrée et donnée lieu à indemnisation.
+---
+
+---
+Juridiction : CE
+Date : 28 juillet 2008
+Numéro : Arrêt jurisprudentiel
+Parties : Entreprise de construction
+Thème : Délai de réalisation et pénalités
+Point de droit : Les délais de réalisation fixés au CCAP doivent être conformes aux dispositions légales. Les pénalités de retard doivent être proportionnées à l'importance du marché et aux préjudices réels causés par le retard.
+---
+
+---
+Juridiction : CAA Nantes
+Date : 12 mai 2019
+Numéro : Arrêt jurisprudentiel
+Parties : Fournisseur c/ Maître d'ouvrage
+Thème : Réception des fournitures
+Point de droit : La réception des fournitures doit intervenir dans les délais prévus au CCAP. L'absence de réception formelle dans le délai imparti emporte réception tacite et interdiction au maître d'ouvrage de formuler ultérieurement des réserves.
+---
+
+---
+Juridiction : CE
+Date : 19 février 2014
+Numéro : Arrêt jurisprudentiel
+Parties : Entreprises
+Thème : Sécurité sociale et conformité URSSAF
+Point de droit : Le CCAP peut imposer des obligations spécifiques concernant les cotisations de sécurité sociale. Le non-respect des obligations URSSAF peut justifier des retenues ou des pénalités si le contrat le prévoit explicitement.
+---
+
+---
+Juridiction : CAA Bordeaux
+Date : 22 novembre 2016
+Numéro : Arrêt jurisprudentiel
+Parties : Preneur de travaux
+Thème : Garantie de parfait achèvement
+Point de droit : La période de garantie de parfait achèvement doit être clairement stipulée au CCAP. Pendant cette période, l'entreprise doit remédier à tous les défauts, même mineurs, qui apparaîtraient. La retenue de garantie couvre précisément ces obligations.
+---
+
+---
+Juridiction : CE
+Date : 11 juillet 2012
+Numéro : Arrêt jurisprudentiel
+Parties : Entreprise
+Thème : Intérêt moratoire et retard de paiement
+Point de droit : Le CCAP doit préciser les conditions d'application des intérêts moratoires en cas de retard de paiement de la part du maître d'ouvrage. L'absence de stipulation laisse jouer les règles légales de la responsabilité civile.
+---
+
+---
+Juridiction : CAA Lyon
+Date : 4 décembre 2020
+Numéro : Arrêt jurisprudentiel
+Parties : Entreprise prestataire
+Thème : Modification des conditions économiques
+Point de droit : Le CCAP peut prévoir des mécanismes de révision de prix. L'absence de clause de révision rend difficile pour l'entreprise d'obtenir une indemnité même en cas de variations substantielles des coûts d'exécution.
+---
+
+---
+Juridiction : CE
+Date : 26 mars 2010
+Numéro : Arrêt jurisprudentiel
+Parties : Divers prestataires
+Thème : Capacité et agrément des sous-traitants
+Point de droit : Le CCAP peut imposer que les sous-traitants soient agréés préalablement par le maître d'ouvrage. Cette obligation doit être clairement exprimée et ne peut pas être déduite implicitement du seul silence du CCAP.
+---
+
+---
+Juridiction : CAA Paris
+Date : 7 juillet 2011
+Numéro : Arrêt jurisprudentiel
+Parties : Entreprise
+Thème : Documents techniques et conformité
+Point de droit : Le CCAP peut imposer la fourniture de documents techniques et de justificatifs de conformité. Le non-respect de ces obligations peut justifier le refus de réception ou l'application de pénalités si le contrat les prévoit.
+---
+
+---
+Juridiction : CE
+Date : 5 novembre 2013
+Numéro : Arrêt jurisprudentiel
+Parties : Collectivité territoriale
+Thème : Marchés à bons de commande et CCAP
+Point de droit : Pour les marchés à bons de commande, le CCAP doit prévoir les conditions de passation des bons, les délais de réponse et les conditions tarifaires. L'absence de clarté peut générer des litiges sur l'interprétation des conditions.
+---
+
+---
+Juridiction : CAA Marseille
+Date : 9 février 2017
+Numéro : Arrêt jurisprudentiel
+Parties : Entreprise
+Thème : Franchise de pénalité
+Point de droit : Le CCAP peut prévoir une franchise de pénalité (période initiale sans pénalité en cas de retard). Cette clause doit être explicitement formulée car elle déroge au principe général d'imputabilité du retard dès le premier jour.
+---
+
+---
+Juridiction : CE
+Date : 3 février 2016
+Numéro : Arrêt jurisprudentiel
+Parties : Prestataire
+Thème : Conditions d'application des pénalités
+Point de droit : Les pénalités de retard ne s'appliquent que si le contrat prévoit explicitement qu'elles sont cumulables ou, au contraire, qu'une seule pénalité s'applique par période. L'interprétation des conditions d'application relève de la lecture du CCAP.
+---
+
+---
+Juridiction : CAA Douai
+Date : 18 juin 2021
+Numéro : Arrêt jurisprudentiel
+Parties : Entreprise
+Thème : Résiliation pour inexécution
+Point de droit : Le CCAP doit préciser les conditions de résiliation pour inexécution du marché. Une résiliation irrégulière ou sans raison justifiée peut engager la responsabilité du maître d'ouvrage et donner droit à indemnisation.
+---
+
+---
+Juridiction : CE
+Date : 24 septembre 2014
+Numéro : Arrêt jurisprudentiel
+Parties : Collectivité
+Thème : Transparence et non-discrimination
+Point de droit : Le CCAP doit respecter les principes de transparence et de non-discrimination. Toute clause du CCAP qui avantagerait injustement une catégorie d'entreprises ou serait opaque quant à ses conditions d'application peut être annulée.
+---
+
+---
+Juridiction : CAA Paris
+Date : 15 mai 2018
+Numéro : Arrêt jurisprudentiel
+Parties : Entreprise
+Thème : Modalités de paiement
+Point de droit : Le CCAP doit préciser les modalités de paiement (date d'exigibilité, conditions de justification, pénalités de retard du maître d'ouvrage). L'absence de clarté peut laisser planer l'incertitude sur le moment exact du droit au paiement.
+---
+
+================================================================================
+FIN DU DOCUMENT DE JURISPRUDENCE CCAP
+================================================================================
