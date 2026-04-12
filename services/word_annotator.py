@@ -142,7 +142,17 @@ class WordCommentAnnotator:
         gravite = remarque.get("gravite", "moyenne")
         header = GRAVITY_HEADERS.get(gravite, "🟠 GRAVITÉ MOYENNE")
 
-        parts = [
+        parts = []
+
+        # Préfixe pour les remarques CCTP
+        if remarque.get("document_source") == "CCTP":
+            parts.append("📄 REMARQUE SUR LE CCTP")
+            section = remarque.get("section_source", "")
+            if section:
+                parts.append(f"Section : {section}")
+            parts.append("")
+
+        parts.extend([
             header,
             "━" * 25,
             "",
@@ -157,7 +167,7 @@ class WordCommentAnnotator:
             "",
             "✅ RECOMMANDATION:",
             remarque.get("recommandation", "N/A"),
-        ]
+        ])
 
         return "\n".join(parts)
 
@@ -281,15 +291,31 @@ class WordCommentAnnotator:
         comment_element = self._create_comment_element(comment_id, comment_text)
         self.comments.append(comment_element)
 
+    def _get_last_paragraph(self):
+        """Retourne le dernier paragraphe non-vide du document."""
+        paragraphs = list(self._iter_all_paragraphs())
+        for para in reversed(paragraphs):
+            if para.text.strip():
+                return para
+        return paragraphs[-1] if paragraphs else None
+
     def add_comment(self, remarque: dict, comment_id: int = None) -> bool:
         """Ajoute un commentaire pour une remarque."""
         extrait = remarque.get("extrait_texte", "")
 
-        if not extrait:
-            logger.warning("Remarque sans extrait de texte, ignorée")
-            return False
+        # Remarques CCTP : placer sur le dernier paragraphe du document CCAP
+        if remarque.get("document_source") == "CCTP":
+            para = self._get_last_paragraph()
+            if not para:
+                logger.warning("Aucun paragraphe dans le document pour le commentaire CCTP")
+                return False
+            found = True
+        else:
+            if not extrait:
+                logger.warning("Remarque sans extrait de texte, ignorée")
+                return False
 
-        para, found = self._find_paragraph_with_text(extrait)
+            para, found = self._find_paragraph_with_text(extrait)
 
         if not found:
             logger.warning(f"Texte non trouvé dans le CCAP: {extrait[:80]}...")

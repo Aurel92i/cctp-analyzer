@@ -13,6 +13,7 @@ Flow :
 """
 
 import logging
+import re
 from pathlib import Path
 from typing import List, Dict, Callable, Optional
 
@@ -23,12 +24,54 @@ from services.knowledge_indexer import (
     cleanup_session_collections,
 )
 from services.knowledge_retriever import retrieve_relevant_context
-from services.agent_structurer import extract_structure
 from services.agent_auditor import audit_clause
 from services.agent_synthesizer import synthesize
 from config import CODE_COMMANDE_PUBLIQUE_FILE, CCAG_DIR, DOMAINES_CCAG
 
 logger = logging.getLogger(__name__)
+
+
+def split_document_into_sections(text):
+    """Découpe un document (CCAP/CCTP) en sections. Chaque section = titre + TOUT le contenu jusqu'au prochain titre."""
+    patterns = [
+        r'(?=(?:^|\n)\s*(Article\s+\d+(?:[.\-]\d+)*)\s*[-–:\.]\s*([^\n]+))',
+        r'(?=(?:^|\n)\s*(\d+[-\.]\d+(?:[-\.]\d+)*)\s*[-–]\s*([^\n]+))',
+        r'(?=(?:^|\n)\s*(ARTICLE\s+\d+(?:[.\-]\d+)*)\s*[-–:\.]\s*([^\n]+))',
+    ]
+
+    sections = []
+    for pattern in patterns:
+        matches = list(re.finditer(pattern, text, re.MULTILINE | re.IGNORECASE))
+        if len(matches) >= 3:
+            for i, match in enumerate(matches):
+                start = match.start()
+                end = matches[i + 1].start() if i + 1 < len(matches) else len(text)
+                section_text = text[start:end].strip()
+
+                if len(section_text) < 200:
+                    continue
+                if section_text.count('...') > 3 or section_text.count('\u2026') > 3:
+                    continue
+
+                sections.append({
+                    "numero": match.group(1).strip(),
+                    "titre": match.group(2).strip() if match.lastindex >= 2 else "",
+                    "text": section_text
+                })
+            break
+
+    if not sections:
+        chunk_size = 5000
+        for i in range(0, len(text), chunk_size):
+            chunk = text[i:i + chunk_size]
+            if len(chunk.strip()) > 100:
+                sections.append({
+                    "numero": f"Partie {i // chunk_size + 1}",
+                    "titre": "",
+                    "text": chunk.strip()
+                })
+
+    return sections
 
 
 def run_full_analysis(
@@ -102,16 +145,15 @@ def run_full_analysis(
             index_cctp(cctp_path, session_id)
 
         # =================================================================
-        # PHASE 3 : EXTRACTION DU TEXTE ET DE LA STRUCTURE DU CCAP
+        # PHASE 3 : EXTRACTION DU TEXTE ET DÉCOUPAGE DÉTERMINISTE DU CCAP
         # =================================================================
         update_progress(15, "Extraction du texte du CCAP...")
-        from services.document_extractor import extract_text_from_docx
+        from services.document_extractor import extract_text_from_docx, extract_text
 
         ccap_text = extract_text_from_docx(ccap_path)
 
-        update_progress(20, "Analyse de la structure du CCAP...")
-        structure = extract_structure(ccap_text)
-        sections = structure.get("sections", [])
+        update_progress(20, "Découpage du CCAP en sections...")
+        sections = split_document_into_sections(ccap_text)
 
         if not sections:
             return {
@@ -123,49 +165,41 @@ def run_full_analysis(
         logger.info(f"[{session_id}] {len(sections)} sections identifiées dans le CCAP")
 
         # =================================================================
-        # PHASE 4 : AUDIT CLAUSE PAR CLAUSE (avec RAG)
+        # PHASE 4 : AUDIT CLAUSE PAR CLAUSE DU CCAP (avec RAG)
         # =================================================================
         all_remarques: List[Dict] = []
         audit_results: List[Dict] = []
 
         for i, section in enumerate(sections):
-            progress = 25 + int((i / len(sections)) * 50)  # 25% à 75%
+            progress = 25 + int((i / max(len(sections), 1)) * 50)  # 25% à 75%
             update_progress(
                 progress,
-                f"Audit section {i + 1}/{len(sections)} : "
+                f"Audit CCAP section {i + 1}/{len(sections)} : "
                 f"{section.get('titre', '?')[:50]}...",
             )
 
-            # Extraire le texte de la section
-            start = section.get("start_char", 0)
-            end = section.get("end_char", len(ccap_text))
-            clause_text = ccap_text[start:end]
+            clause_text = section["text"]
 
-            # Limiter la taille de la clause (~3k tokens)
-            max_clause_chars = 12000
+            # Pas de troncature agressive — les clauses doivent être lues EN ENTIER
+            max_clause_chars = 25000
             if len(clause_text) > max_clause_chars:
-                clause_text = (
-                    clause_text[:max_clause_chars]
-                    + "\n[... section tronquée ...]"
-                )
+                clause_text = clause_text[:max_clause_chars] + "\n[... fin de section tronquée ...]"
 
             # Récupérer le contexte pertinent via RAG
             context = retrieve_relevant_context(
                 clause_text=clause_text,
                 session_id=session_id,
-                n_results_ccp=7,
-                n_results_ccag=5,
-                n_results_cctp=3,
+                n_results_ccp=10,
+                n_results_ccag=8,
             )
 
             # Auditer la clause du CCAP
             audit_result = audit_clause(
                 clause_text=clause_text,
-                section_numero=section.get("numero", f"Section {i + 1}"),
-                section_titre=section.get("titre", "Sans titre"),
+                section_numero=section["numero"],
+                section_titre=section["titre"],
                 code_ccp_extracts=context["code_ccp_extracts"],
                 ccag_extracts=context["ccag_extracts"],
-                cctp_extracts=context.get("cctp_extracts", ""),
                 domaine=domaine,
                 domaine_label=domaine_label,
             )
@@ -178,6 +212,46 @@ def run_full_analysis(
                     f"[{session_id}] Section '{section.get('titre', '?')[:40]}' : "
                     f"{len(audit_result['remarques'])} remarques"
                 )
+
+        # =================================================================
+        # PHASE 4b : AUDIT OPTIONNEL DU CCTP
+        # =================================================================
+        if cctp_path and Path(cctp_path).exists():
+            update_progress(76, "Analyse du CCTP...")
+            cctp_text = extract_text(cctp_path)
+            cctp_sections = split_document_into_sections(cctp_text)
+
+            for i, section in enumerate(cctp_sections):
+                progress = 76 + int((i / max(len(cctp_sections), 1)) * 2)
+                update_progress(
+                    progress,
+                    f"Audit CCTP section {i + 1}/{len(cctp_sections)}...",
+                )
+
+                clause_text = section["text"][:25000]
+
+                context = retrieve_relevant_context(
+                    clause_text=clause_text,
+                    session_id=session_id,
+                    n_results_ccp=5,
+                    n_results_ccag=5,
+                )
+
+                audit_result = audit_clause(
+                    clause_text=clause_text,
+                    section_numero=section["numero"],
+                    section_titre=section["titre"],
+                    code_ccp_extracts=context["code_ccp_extracts"],
+                    ccag_extracts=context["ccag_extracts"],
+                    domaine=domaine,
+                    domaine_label=domaine_label,
+                    type_document="CCTP",
+                )
+
+                if audit_result.get("success") and audit_result.get("remarques"):
+                    for r in audit_result["remarques"]:
+                        r["document_source"] = "CCTP"
+                    all_remarques.extend(audit_result["remarques"])
 
         # =================================================================
         # PHASE 5 : DÉDUPLICATION
